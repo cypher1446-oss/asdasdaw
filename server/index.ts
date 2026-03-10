@@ -89,7 +89,9 @@ export async function initializeApp() {
     if (process.env.NODE_ENV === "production") {
       serveStatic(app);
     } else {
-      const { setupVite } = await import("./vite");
+      // Use dynamic path to prevent Vercel NFT from crawling dev dependencies
+      const vitePath = "./vite";
+      const { setupVite } = await (import(vitePath) as any);
       await setupVite(httpServer, app);
     }
 
