@@ -59,7 +59,11 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+let isInitialized = false;
+
+export async function initializeApp() {
+  if (isInitialized) return;
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
@@ -104,6 +108,13 @@ app.use((req, res, next) => {
       },
     );
   }
-})();
+
+  isInitialized = true;
+}
+
+// Automatically initialize if not in Vercel (e.g., local development)
+if (!process.env.VERCEL) {
+  initializeApp().catch(console.error);
+}
 
 export { app };
