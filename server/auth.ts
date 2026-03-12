@@ -19,28 +19,20 @@ export function setupAuth(app: Express) {
 
   let sessionStore;
   try {
-    console.log("setupAuth: Attempting to create PgSession store...");
-    sessionStore = process.env.DATABASE_URL
-      ? new PgSession({
+    if (process.env.DATABASE_URL) {
+      console.log("setupAuth: Creating PgSession store...");
+      sessionStore = new PgSession({
         pool,
         createTableIfMissing: true,
         tableName: 'session',
-        // Disable prune interval for serverless to prevent background activity
         pruneSessionInterval: false,
-        // Suppress advisory lock issues if using Supabase transaction pooler on Vercel
         errorLog: console.error
-      })
-      : undefined;
+      });
+    } else {
+      console.warn("setupAuth: No DATABASE_URL found. Falling back to MemoryStore.");
+    }
   } catch (err) {
-    console.error("Failed to initialize session store:", err);
-  }
-
-  console.log("setupAuth: sessionStore is", sessionStore ? "created" : "undefined");
-
-  if (sessionStore) {
-    sessionStore.on('error', (err: any) => {
-      console.error('Session store error:', err);
-    });
+    console.error("setupAuth: CRITICAL ERROR creating session store:", err);
   }
 
   app.use(
@@ -49,12 +41,11 @@ export function setupAuth(app: Express) {
       secret: process.env.SESSION_SECRET || "opinion-insights-secret-key-change-me",
       resave: false,
       saveUninitialized: false,
-      rolling: true, // Refresh session expiration on every request
+      rolling: true,
       cookie: {
         httpOnly: true,
-        // Must be true in Vercel production
         secure: process.env.NODE_ENV === "production",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+        maxAge: 30 * 24 * 60 * 60 * 1000,
         sameSite: "lax",
       },
     })

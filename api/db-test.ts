@@ -1,53 +1,47 @@
-import { pool } from "../server/db";
+import pg from "pg";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   const diagnosticDetails: any = {
     timestamp: new Date().toISOString(),
     env: {
-      hasDatabaseUrl: !!process.env.DATABASE_URL,
-      nodeEnv: process.env.NODE_ENV,
-      vercel: process.env.VERCEL,
+      has_db_url: !!process.env.DATABASE_URL,
+      db_url_prefix: process.env.DATABASE_URL ? process.env.DATABASE_URL.substring(0, 15) : "none"
     }
   };
 
   try {
     if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL is missing from environment variables.");
+      throw new Error("DATABASE_URL environment variable is missing.");
     }
 
-    const start = Date.now();
+    const { Pool } = pg;
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: !process.env.DATABASE_URL.includes("localhost") ? { rejectUnauthorized: false } : false,
+      connectionTimeoutMillis: 5000,
+    });
+
+    diagnosticDetails.step = "connecting";
     const client = await pool.connect();
-    const duration = Date.now() - start;
     
-    diagnosticDetails.connection = {
-      success: true,
-      durationMs: duration,
-    };
-
-    const result = await client.query("SELECT 1 as ping");
+    diagnosticDetails.step = "querying";
+    const result = await client.query("SELECT NOW() as now, version()");
     client.release();
-
-    diagnosticDetails.query = {
-      success: true,
-      result: result.rows[0],
-    };
 
     res.status(200).json({
       status: "success",
-      message: "Database connectivity verified.",
-      details: diagnosticDetails
+      message: "Database connection successful.",
+      data: result.rows[0],
+      diagnosticDetails
     });
   } catch (err: any) {
-    diagnosticDetails.error = {
-      message: err.message,
-      code: err.code,
-      stack: process.env.NODE_ENV === "development" ? err.stack : undefined
-    };
-
     res.status(500).json({
       status: "error",
-      message: "Database connectivity failed.",
-      details: diagnosticDetails
+      message: err.message || "Database connectivity failed.",
+      error_code: err.code,
+      diagnostic_step: diagnosticDetails.step,
+      stack: process.env.NODE_ENV !== "production" ? err.stack : undefined
     });
   }
 }

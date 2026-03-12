@@ -59,9 +59,18 @@ app.use((req, res, next) => {
   next();
 });
 
+log("Verifying environment variables...");
+if (!process.env.DATABASE_URL) {
+  log("WARNING: DATABASE_URL is missing. Database operations will fail.", "error");
+}
+
 log("Initializing routes...");
-registerRoutes(httpServer, app);
-log("Routes registered.");
+try {
+  registerRoutes(httpServer, app);
+  log("Routes registered.");
+} catch (err) {
+  log(`CRITICAL: Failed to register routes: ${err}`, "error");
+}
 
 app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
