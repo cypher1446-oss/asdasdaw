@@ -6,25 +6,62 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState } from "react";
-import { Search, Filter, Database, ArrowUpDown, Globe } from "lucide-react";
+import { Download, FileSpreadsheet, Search, Filter, Database, ArrowUpDown, Globe, ShieldCheck, ShieldAlert, Clock } from "lucide-react";
 import type { Respondent } from "@shared/schema";
+import { GlassButton } from "@/components/ui/glass-button";
 
 export default function ResponsesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [isExporting, setIsExporting] = useState(false);
 
   const { data: responses, isLoading } = useQuery<Respondent[]>({
-    queryKey: ["/api/responses"],
+    queryKey: ["/api/admin/responses"],
+  });
+
+  const { data: projects } = useQuery<any[]>({
+    queryKey: ["/api/admin/projects"],
+  });
+
+  const { data: suppliers } = useQuery<any[]>({
+    queryKey: ["/api/admin/suppliers"],
+  });
+
+  const { data: s2sLogs } = useQuery<any[]>({
+    queryKey: ["/api/s2s/alerts"], // Reusing security alerts or we could add a dedicated endpoint if needed
+    enabled: isExporting, 
   });
 
   const filteredResponses = responses?.filter((r) => {
     const matchesSearch =
       r.projectCode.toLowerCase().includes(search.toLowerCase()) ||
-      r.supplierCode.toLowerCase().includes(search.toLowerCase()) ||
-      r.id.toLowerCase().includes(search.toLowerCase());
+      (r.supplierCode || "").toLowerCase().includes(search.toLowerCase()) ||
+      String(r.id).toLowerCase().includes(search.toLowerCase());
     const matchesStatus = statusFilter === "all" || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const handleExcelExport = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch("/api/admin/responses/export-excel");
+      if (!response.ok) throw new Error("Export failed");
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `OpinionInsights_Analytics_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("Excel Export Error:", error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <div className="space-y-10 pb-12">
@@ -75,6 +112,23 @@ export default function ResponsesPage() {
               </CardDescription>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <GlassButton
+              className="bg-emerald-600 text-white hover:bg-emerald-700 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-emerald-200"
+              onClick={handleExcelExport}
+              disabled={isExporting}
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              {isExporting ? 'Preparing...' : 'Export Excel Pro'}
+            </GlassButton>
+            <GlassButton
+              className="bg-slate-800 text-white hover:bg-slate-900 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center gap-2 shadow-lg shadow-slate-200"
+              onClick={() => window.open("/api/admin/responses/export", "_blank")}
+            >
+              <Download className="h-4 w-4" />
+              CSV
+            </GlassButton>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
@@ -88,49 +142,102 @@ export default function ResponsesPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-b border-slate-100 bg-slate-50/50">
-                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-8 py-5 h-auto">Session ID / Context</TableHead>
-                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-8 py-5 h-auto">Origin Cluster</TableHead>
-                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-8 py-5 h-auto">Regional Node</TableHead>
-                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-8 py-5 h-auto">Result State</TableHead>
-                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-8 py-5 h-auto text-right">Timestamp</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">S-ID</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">P-ID</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">HUB</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">IP-ADDRESS</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">COUNTRY</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto text-center">S2S-HASH</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">STATUS</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto">OS/TECH</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto text-center">LOI</TableHead>
+                    <TableHead className="font-black text-[10px] uppercase tracking-widest text-slate-400 px-4 py-5 h-auto text-right">TIMESTAMP</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-slate-100">
-                  {filteredResponses?.map((r) => (
-                    <TableRow key={r.id} className="group hover:bg-slate-50/80 transition-all border-none">
-                      <TableCell className="px-8 py-6">
-                        <div className="flex flex-col gap-1">
-                          <code className="text-[10px] font-mono font-bold text-slate-300 truncate max-w-[120px] group-hover:text-primary/40 transition-colors">{r.id}</code>
-                          <span className="font-black text-[13px] text-slate-800 tracking-tight group-hover:translate-x-1 transition-transform">{r.projectCode}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-8 capitalize">
-                        <span className="text-[11px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-3 py-1 rounded-lg">
-                          {r.supplierCode}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-8 text-center">
-                        <div className="flex items-center gap-2">
-                          <Globe className="w-3.5 h-3.5 text-slate-300" />
-                          <span className="text-[11px] font-black text-slate-600">{r.countryCode || "Global"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-8">
-                        <StatusBadge status={r.status || "started"} />
-                      </TableCell>
-                      <TableCell className="px-8 text-right font-bold text-[11px] text-slate-400">
-                        {new Date(r.startedAt || Date.now()).toLocaleDateString([], {
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredResponses?.map((r) => {
+                    const getLOI = (start?: string | Date, end?: string | Date | null) => {
+                      if (!start || !end) return "—";
+                      const s = new Date(start).getTime();
+                      const e = new Date(end).getTime();
+                      const diff = Math.floor((e - s) / 60000);
+                      return `${diff}m`;
+                    };
+
+                    const getOS = (ua?: string | null) => {
+                      if (!ua) return "Unknown";
+                      if (ua.includes("Windows")) return "Windows";
+                      if (ua.includes("Mac OS")) return "macOS";
+                      if (ua.includes("Linux")) return "Linux";
+                      if (ua.includes("Android")) return "Android";
+                      if (ua.includes("iPhone") || ua.includes("iPad")) return "iOS";
+                      return "Other";
+                    };
+
+                    return (
+                      <TableRow key={r.id} className="group hover:bg-slate-50/80 transition-all border-none">
+                        <TableCell className="px-4 py-6">
+                          <code className="text-[10px] font-mono font-bold text-slate-400">{r.id}</code>
+                        </TableCell>
+                        <TableCell className="px-4">
+                          <span className="font-black text-[12px] text-slate-800 tracking-tight">{r.projectCode}</span>
+                        </TableCell>
+                        <TableCell className="px-4">
+                          <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-100 px-2 py-0.5 rounded">
+                            {r.supplierCode}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-4">
+                          <span className="text-[10px] font-mono font-bold text-slate-400">{r.ipAddress || "0.0.0.0"}</span>
+                        </TableCell>
+                        <TableCell className="px-4 text-center">
+                          <div className="flex items-center gap-1.5">
+                            <Globe className="w-3 h-3 text-slate-300" />
+                            <span className="text-[10px] font-black text-slate-600 uppercase">{r.countryCode || "GLB"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 text-center">
+                          {r.s2sVerified ? (
+                            <div className="inline-flex items-center gap-1 text-emerald-500 font-black text-[9px] uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">
+                              <ShieldCheck className="w-3 h-3" />
+                              VERIFIED
+                            </div>
+                          ) : (
+                            <div className="inline-flex items-center gap-1 text-slate-300 font-black text-[9px] uppercase tracking-widest">
+                              <ShieldAlert className="w-3 h-3" />
+                              UNSET
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="px-4">
+                          <StatusBadge status={r.status || "started"} />
+                        </TableCell>
+                        <TableCell className="px-4">
+                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter truncate max-w-[80px] block">
+                            {getOS(r.userAgent)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-4 text-center">
+                          <div className="flex items-center justify-center gap-1 text-slate-400 font-bold text-[10px]">
+                            <Clock className="w-3 h-3" />
+                            {getLOI(r.startedAt, r.completedAt)}
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-4 text-right font-bold text-[10px] text-slate-400">
+                          {new Date(r.startedAt || Date.now()).toLocaleDateString([], {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            hour12: false
+                          })}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   {!isLoading && filteredResponses?.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="h-64 text-center">
+                      <TableCell colSpan={10} className="h-64 text-center">
                         <div className="flex flex-col items-center justify-center space-y-3 opacity-30">
                           <Database className="w-10 h-10" />
                           <p className="text-sm font-black uppercase tracking-[0.2em]">No Synchronized Records</p>

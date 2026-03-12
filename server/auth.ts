@@ -9,19 +9,30 @@ declare module "express-session" {
     adminId?: number;
   }
 }
+import { pool } from "./db";
 
 export function setupAuth(app: Express) {
   // Trust the Vercel reverse proxy for HTTPS termination
   app.set('trust proxy', 1);
 
+  console.log("setupAuth: process.env.DATABASE_URL is", process.env.DATABASE_URL ? "defined" : "undefined");
+
   const sessionStore = process.env.DATABASE_URL
     ? new PgSession({
-      conString: process.env.DATABASE_URL,
+      pool,
       createTableIfMissing: true,
       // Suppress advisory lock issues if using Supabase transaction pooler on Vercel
       pruneSessionInterval: false,
     })
     : undefined;
+
+  console.log("setupAuth: sessionStore is", sessionStore ? "created" : "undefined");
+
+  if (sessionStore) {
+    sessionStore.on('error', (err: any) => {
+      console.error('Session store error:', err);
+    });
+  }
 
   app.use(
     session({
@@ -29,11 +40,12 @@ export function setupAuth(app: Express) {
       secret: process.env.SESSION_SECRET || "opinion-insights-secret-key-change-me",
       resave: false,
       saveUninitialized: false,
+      rolling: true, // Refresh session expiration on every request
       cookie: {
         httpOnly: true,
         // Must be true in Vercel production
         secure: process.env.NODE_ENV === "production",
-        maxAge: 24 * 60 * 60 * 1000,
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
         sameSite: "lax",
       },
     })

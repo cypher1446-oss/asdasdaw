@@ -7,7 +7,7 @@ import { CheckCircle2, AlertCircle, Clock, MapPin } from "lucide-react";
 import { format } from "date-fns";
 
 export default function RedirectDebugger() {
-    const [params] = useSearch();
+    const params = useSearch();
     const oiSession = new URLSearchParams(params).get("oi_session");
 
     const { data: logs, isLoading } = useQuery<any[]>({

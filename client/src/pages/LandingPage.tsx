@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 
 export default function LandingPage() {
-    const [params] = useSearch();
+    const params = useSearch();
     const oiSession = new URLSearchParams(params).get("oi_session");
     const [, setLocation] = useLocation();
     const [progress, setProgress] = useState(0);

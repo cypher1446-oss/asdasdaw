@@ -1,7 +1,7 @@
 import React, { useState, Fragment, useEffect } from "react";
-import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
+import { useLocation, useRoute } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   ArrowLeft,
@@ -43,15 +43,27 @@ export default function ProjectFormPage() {
     rid_counter: 1,
     // Step 2
     countries: [] as CountryRow[],
-    // Step 3
     supplier_id: '',
   });
-
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
 
+  const [match, params] = useRoute("/admin/projects/:id/edit");
+  const isEditing = !!match;
+  const projectId = params?.id;
+
   // Fetch data
+  const { data: projectData, isSuccess: isProjectLoaded } = useQuery<any>({
+    queryKey: [`/api/projects/${projectId}`],
+    enabled: isEditing && !!projectId,
+  });
+
+  const { data: projectSurveys, isSuccess: isSurveysLoaded } = useQuery<any[]>({
+    queryKey: [`/api/projects/${projectId}/surveys`],
+    enabled: isEditing && !!projectId,
+  });
+
   const { data: suppliers = [] } = useQuery<any[]>({
     queryKey: ["/api/suppliers"],
   });
@@ -59,6 +71,37 @@ export default function ProjectFormPage() {
   const { data: clients = [] } = useQuery<any[]>({
     queryKey: ["/api/clients"],
   });
+
+  // Populate form on edit
+  useEffect(() => {
+    if (isEditing && isProjectLoaded && projectData) {
+      setFormData(prev => ({
+        ...prev,
+        project_name: projectData.projectName || '',
+        project_code: projectData.projectCode || '',
+        client: projectData.client || '',
+        status: projectData.status || 'active',
+        rid_prefix: projectData.ridPrefix || '',
+        rid_country_code: projectData.ridCountryCode || '',
+        rid_padding: projectData.ridPadding || 4,
+        rid_counter: projectData.ridCounter || 1,
+      }));
+    }
+  }, [isEditing, isProjectLoaded, projectData]);
+
+  useEffect(() => {
+    if (isEditing && isSurveysLoaded && projectSurveys) {
+      setFormData(prev => ({
+        ...prev,
+        countries: projectSurveys.map(s => ({
+          id: s.id.toString(), // Use actual ID as string for key
+          country_code: s.countryCode || '',
+          survey_url: s.surveyUrl || '',
+          status: s.status || 'active'
+        }))
+      }));
+    }
+  }, [isEditing, isSurveysLoaded, projectSurveys]);
 
   const update = (field: string, value: any) => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
@@ -126,7 +169,10 @@ export default function ProjectFormPage() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const projectRes = await apiRequest("POST", "/api/projects", {
+      const method = isEditing ? "PATCH" : "POST";
+      const url = isEditing ? `/api/projects/${projectId}` : "/api/projects";
+
+      const projectRes = await apiRequest(method, url, {
         projectName: formData.project_name,
         projectCode: formData.project_code.toUpperCase(),
         client: formData.client,
@@ -137,6 +183,13 @@ export default function ProjectFormPage() {
         ridCounter: formData.rid_counter,
       });
       const project = await projectRes.json();
+
+      // Handle surveys
+      if (isEditing) {
+        // Simple approach for now: DELETE all existing surveys for this project and re-add
+        // Robust approach would be to diff, but given the scale, this is safer for consistency
+        await apiRequest("DELETE", `/api/projects/${project.id}/surveys/all`);
+      }
 
       if (formData.countries.length > 0) {
         for (const c of formData.countries) {
@@ -149,11 +202,25 @@ export default function ProjectFormPage() {
         }
       }
 
-      toast({ title: "Project successfully initialized" });
+      toast({ 
+        title: isEditing ? "Project successfully updated" : "Project successfully initialized",
+        description: isEditing ? `${formData.project_name} has been synchronized.` : "Your campaign is now live."
+      });
+      
+      await queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+      if (isEditing) {
+        await queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+        await queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/surveys`] });
+      }
+      
       setLocation(`/admin/projects`);
 
     } catch (error: any) {
-      toast({ title: "Initialization error", description: error.message, variant: "destructive" });
+      toast({ 
+        title: isEditing ? "Update error" : "Initialization error", 
+        description: error.message, 
+        variant: "destructive" 
+      });
     } finally {
       setSubmitting(false);
     }
@@ -172,8 +239,12 @@ export default function ProjectFormPage() {
             <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-1 transition-transform" />
             Return to Fleet
           </button>
-          <h1 className="text-3xl font-black tracking-tight text-slate-800">Project Architect</h1>
-          <p className="text-sm text-slate-400 mt-1 font-bold">Configure routing parameters and regional endpoints</p>
+          <h1 className="text-3xl font-black tracking-tight text-slate-800">
+            {isEditing ? `Edit ${formData.project_name}` : 'Project Architect'}
+          </h1>
+          <p className="text-sm text-slate-400 mt-1 font-bold">
+            {isEditing ? 'Modify campaign parameters and endpoints' : 'Configure routing parameters and regional endpoints'}
+          </p>
         </div>
       </div>
 
@@ -497,12 +568,29 @@ export default function ProjectFormPage() {
                       <div className="p-2 bg-primary rounded-xl shadow-lg shadow-primary/20">
                         <LinkIcon className="w-5 h-5 text-white" />
                       </div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">Live Nexus Endpoint (Preview)</h3>
+                      <h3 className="text-sm font-black uppercase tracking-[0.2em] text-primary">Live Nexus Endpoints (Preview)</h3>
                     </div>
-                    <div className="p-6 bg-white border border-primary/20 rounded-2xl shadow-inner group-hover/final:border-primary/40 transition-all">
-                      <code className="text-[11px] font-black font-mono text-primary/80 break-all leading-relaxed tracking-tight">
-                        {window.location.origin}/track?code={formData.project_code}&country=[CC]&uid=[RID]
-                      </code>
+                    <div className="space-y-4">
+                      {formData.countries.length > 0 ? (
+                        formData.countries.map(c => (
+                          <div key={c.id} className="p-5 bg-white border border-primary/20 rounded-2xl shadow-inner hover:border-primary/40 transition-all">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full">
+                                Locale: {c.country_code || '[CC]'}
+                              </span>
+                            </div>
+                            <code className="text-[11px] font-black font-mono text-primary/80 break-all leading-relaxed tracking-tight block selection:bg-primary/20">
+                              {window.location.origin}/track?code={formData.project_code || '[CODE]'}&country={c.country_code || '[CC]'}&uid=[RID]
+                            </code>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-6 bg-white border border-primary/20 rounded-2xl shadow-inner hover:border-primary/40 transition-all">
+                          <code className="text-[11px] font-black font-mono text-primary/80 break-all leading-relaxed tracking-tight block">
+                            {window.location.origin}/track?code={formData.project_code || '[CODE]'}&country=[CC]&uid=[RID]
+                          </code>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -545,7 +633,7 @@ export default function ProjectFormPage() {
                         "Initializing Fleet..."
                       ) : (
                         <>
-                          <CheckCircle2 className="w-5 h-5" /> Initialize Project
+                          <CheckCircle2 className="w-5 h-5" /> {isEditing ? "Synchronize Changes" : "Initialize Project"}
                         </>
                       )}
                     </button>

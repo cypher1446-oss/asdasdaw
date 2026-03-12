@@ -7,6 +7,7 @@ import {
     MessageSquare,
     Users,
     Truck,
+    Link as LinkIcon,
     ExternalLink,
     Settings,
     LogOut,
@@ -22,6 +23,7 @@ const navItems = [
     { title: "Responses", url: "/admin/responses", icon: MessageSquare },
     { title: "Clients", url: "/admin/clients", icon: Users },
     { title: "Suppliers", url: "/admin/suppliers", icon: Truck },
+    { title: "Link Generator", url: "/admin/link-generator", icon: LinkIcon },
     { title: "Redirects", url: "/admin/redirects", icon: ExternalLink },
     { title: "Settings", url: "/admin/settings", icon: Settings },
 ];

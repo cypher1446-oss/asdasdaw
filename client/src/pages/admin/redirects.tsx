@@ -7,8 +7,16 @@ import { cn } from "@/lib/utils";
 import type { Respondent } from "@shared/schema";
 
 export default function RedirectsPage() {
-  const { data: respondents, isLoading } = useQuery<Respondent[]>({
-    queryKey: ["/api/respondents"],
+  const { data: stats, isLoading } = useQuery<{
+    totalVolume: number;
+    successChain: number;
+    filteredOut: number;
+    securityAlerts: number;
+    ratePerMinute: number;
+    recentActivity: any[];
+  }>({
+    queryKey: ["/api/admin/system-pulse"],
+    refetchInterval: 10000, // Auto-refresh every 10s
   });
 
   const getStatusIcon = (status: string) => {
@@ -16,7 +24,8 @@ export default function RedirectsPage() {
       case "complete": return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
       case "terminate": return <XCircle className="h-4 w-4 text-rose-500" />;
       case "quotafull": return <AlertCircle className="h-4 w-4 text-amber-500" />;
-      case "security": return <ShieldAlert className="h-4 w-4 text-orange-500" />;
+      case "fraud":
+      case "security-terminate": return <ShieldAlert className="h-4 w-4 text-orange-500" />;
       default: return <Clock className="h-4 w-4 text-slate-300" />;
     }
   };
@@ -31,10 +40,10 @@ export default function RedirectsPage() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard title="Total Volume" value={respondents?.length || 0} icon={Users} gradient="from-primary/10 to-transparent" />
-        <StatCard title="Success Chain" value={respondents?.filter(r => r.status === "complete").length || 0} icon={CheckCircle2} gradient="from-emerald-500/10 to-transparent" />
-        <StatCard title="Filtered Out" value={respondents?.filter(r => r.status === "terminate").length || 0} icon={XCircle} gradient="from-rose-500/10 to-transparent" />
-        <StatCard title="Security Alerts" value={respondents?.filter(r => r.status === "security").length || 0} icon={ShieldAlert} gradient="from-amber-500/10 to-transparent" />
+        <StatCard title="Total Volume" value={stats?.totalVolume || 0} icon={Users} gradient="from-primary/10 to-transparent" />
+        <StatCard title="Success Chain" value={stats?.successChain || 0} icon={CheckCircle2} gradient="from-emerald-500/10 to-transparent" />
+        <StatCard title="Filtered Out" value={stats?.filteredOut || 0} icon={XCircle} gradient="from-rose-500/10 to-transparent" />
+        <StatCard title="Security Alerts" value={stats?.securityAlerts || 0} icon={ShieldAlert} gradient="from-amber-500/10 to-transparent" />
       </div>
 
       <Card className="bg-white/40 border-slate-200/60 rounded-[2.5rem] backdrop-blur-2xl shadow-xl shadow-slate-200/10 overflow-hidden group">
@@ -66,11 +75,11 @@ export default function RedirectsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-slate-100">
-                  {respondents?.map((r) => (
+                  {stats?.recentActivity?.map((r: any) => (
                     <TableRow key={r.id} className="group hover:bg-slate-50/80 transition-all border-none">
                       <TableCell className="px-8 py-6">
                         <div className="flex flex-col gap-1">
-                          <code className="text-[10px] font-mono font-bold text-slate-300 truncate max-w-[120px] mb-0.5">{r.id}</code>
+                          <code className="text-[10px] font-mono font-bold text-slate-300 truncate max-w-[120px] mb-0.5">{r.oiSession}</code>
                           <span className="font-black text-[13px] text-slate-800 tracking-tight transition-colors group-hover:text-primary">{r.projectCode}</span>
                         </div>
                       </TableCell>
@@ -96,7 +105,7 @@ export default function RedirectsPage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {!isLoading && respondents?.length === 0 && (
+                  {!isLoading && (!stats?.recentActivity || stats.recentActivity.length === 0) && (
                     <TableRow>
                       <TableCell colSpan={5} className="h-48 text-center text-slate-300 italic text-sm">
                         No transactions recorded in the current session

@@ -7,7 +7,18 @@ import { StatusBadge } from "@/components/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, FolderKanban, BarChart3, Globe2 } from "lucide-react";
+import { Plus, Trash2, FolderKanban, BarChart3, Globe2, Users, Pencil, Loader2, Link as LinkIcon, Shield } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import type { Project } from "@shared/schema";
 
 export default function ProjectsPage() {
@@ -117,16 +128,63 @@ export default function ProjectsPage() {
                       Analyze Hub
                       <BarChart3 className="w-3.5 h-3.5 group-hover/btn:translate-x-0.5 transition-transform" />
                     </button>
-                    <button
-                      onClick={() => {
-                        if (confirm(`Archive ${project.projectName}?`)) {
-                          deleteMutation.mutate(project.id);
-                        }
-                      }}
-                      className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setLocation(`/admin/link-generator?project=${project.projectCode}`)}
+                        className="p-3 text-slate-300 hover:text-primary hover:bg-blue-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                        title="Generate Supplier Links"
+                      >
+                        <LinkIcon className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setLocation(`/admin/projects/${project.projectCode}/s2s`)}
+                        className="p-3 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                        title="S2S Protocol Security"
+                      >
+                        <Shield className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => setLocation(`/admin/projects/${project.id}/edit`)}
+                        className="p-3 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                        title="Edit Project"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button
+                            disabled={deleteMutation.isPending}
+                            className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100 disabled:opacity-30"
+                            title="Archive Project"
+                          >
+                            {deleteMutation.isPending && deleteMutation.variables === project.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-white border-slate-200 rounded-[2.5rem] shadow-2xl overflow-hidden p-0">
+                          <div className="p-10">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-2xl font-black text-rose-500 tracking-tight">Archive Campaign</AlertDialogTitle>
+                              <AlertDialogDescription className="text-slate-400 font-medium py-4 leading-relaxed">
+                                Moving <span className="text-slate-900 font-bold">{project.projectName}</span> to the archive will halt all active routing. This action can be reversed in the archive settings.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="pt-6">
+                              <AlertDialogCancel className="h-12 border-slate-200 rounded-xl font-bold bg-slate-50/50 hover:bg-slate-100 transition-colors">Abort</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteMutation.mutate(project.id)}
+                                className="h-12 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200"
+                              >
+                                Confirm Archival
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </div>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    </div>
                   </div>
                 </div>
               </CardContent>

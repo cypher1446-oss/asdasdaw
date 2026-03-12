@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function MockSurvey() {
-    const [params] = useSearch();
+    const params = useSearch();
     const oiSession = new URLSearchParams(params).get("oi_session");
     const [, setLocation] = useLocation();
     const [isSubmitting, setIsSubmitting] = useState(false);

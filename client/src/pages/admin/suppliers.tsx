@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GlassButton } from "@/components/ui/glass-button";
@@ -14,6 +15,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -23,14 +35,144 @@ import {
 } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Plus, Trash2, ClipboardList, Link2, Copy, Check } from "lucide-react";
+import { Plus, Trash2, ClipboardList, Link2, Copy, Check, Link as LinkIcon, Edit2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { insertSupplierSchema } from "@shared/schema";
+import { insertSupplierSchema, updateSupplierSchema } from "@shared/schema";
 import type { Supplier } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+function EditSupplierDialog({ supplier }: { supplier: Supplier }) {
+  const [open, setOpen] = useState(false);
+  const { toast } = useToast();
+  
+  const form = useForm({
+    resolver: zodResolver(updateSupplierSchema),
+    defaultValues: {
+      name: supplier.name,
+      code: supplier.code,
+      completeUrl: supplier.completeUrl || "",
+      terminateUrl: supplier.terminateUrl || "",
+      quotafullUrl: supplier.quotafullUrl || "",
+      securityUrl: supplier.securityUrl || "",
+    },
+  });
+
+  // Update default values if the supplier object changes
+  useEffect(() => {
+    form.reset({
+      name: supplier.name,
+      code: supplier.code,
+      completeUrl: supplier.completeUrl || "",
+      terminateUrl: supplier.terminateUrl || "",
+      quotafullUrl: supplier.quotafullUrl || "",
+      securityUrl: supplier.securityUrl || "",
+    });
+  }, [supplier, form]);
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("PATCH", `/api/suppliers/${supplier.id}`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/suppliers"] });
+      toast({ title: "Supplier updated successfully" });
+      setOpen(false);
+    },
+    onError: (err: Error) => {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button className="p-3 text-slate-300 hover:text-emerald-500 hover:bg-emerald-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100" title="Edit Supplier">
+          <Edit2 className="h-4 w-4" />
+        </button>
+      </DialogTrigger>
+      <DialogContent className="bg-white/95 backdrop-blur-3xl border-slate-200 rounded-[2.5rem] max-w-2xl shadow-2xl p-0 overflow-hidden">
+        <div className="p-10">
+          <DialogHeader className="mb-8">
+            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight flex items-center gap-3">
+              <div className="p-2 bg-emerald-500/10 rounded-xl">
+                <Edit2 className="w-5 h-5 text-emerald-500" />
+              </div>
+              Edit Supply Integration
+            </DialogTitle>
+            <DialogDescription className="text-slate-400 font-medium">Update the details and callback telemetry for {supplier.name}.</DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit((data) => updateMutation.mutate(data))} className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Supplier Entity</FormLabel>
+                      <FormControl>
+                        <Input placeholder="e.g. Dynata Global" {...field} className="h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/5 transition-all text-slate-800" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="code"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Unique Identifier (TAG)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="DYN01" {...field} className="h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-4 focus:ring-emerald-500/5 transition-all text-slate-800 font-mono" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-emerald-500 border-b border-emerald-500/10 pb-2">Callback Telemetry</p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {["completeUrl", "terminateUrl", "quotafullUrl", "securityUrl"].map((fieldName) => (
+                    <FormField
+                      key={fieldName}
+                      control={form.control}
+                      name={fieldName as any}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                            {fieldName.replace('Url', '').toUpperCase()} Entry
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://..." {...field} className="h-10 bg-slate-50 border-slate-200 rounded-xl text-xs text-slate-800" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <DialogFooter className="pt-6">
+                <button type="submit" disabled={updateMutation.isPending} className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:scale-[1.01] transition-all disabled:opacity-50">
+                  {updateMutation.isPending ? "Updating Nexus..." : "Update Supplier"}
+                </button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 export default function SuppliersPage() {
+  const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -194,16 +336,42 @@ export default function SuppliersPage() {
                     <CardDescription className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nexus Node: {supplier.code}</CardDescription>
                   </div>
                 </div>
-                <button
-                  onClick={() => {
-                    if (confirm(`Remove ${supplier.name} from nexus?`)) {
-                      deleteMutation.mutate(supplier.id);
-                    }
-                  }}
-                  className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <AlertDialog>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setLocation(`/admin/link-generator?supplier=${supplier.id}`)}
+                      className="p-3 text-slate-300 hover:text-primary hover:bg-blue-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100"
+                      title="View Assigned Links"
+                    >
+                      <LinkIcon className="h-4 w-4" />
+                    </button>
+                    <EditSupplierDialog supplier={supplier} />
+                    <AlertDialogTrigger asChild>
+                      <button className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all opacity-0 group-hover:opacity-100">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                  </div>
+                  <AlertDialogContent className="bg-white border-slate-200 rounded-[2.5rem] shadow-2xl overflow-hidden p-0">
+                    <div className="p-10">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle className="text-2xl font-black text-rose-500 tracking-tight">Confirm Deletion</AlertDialogTitle>
+                        <AlertDialogDescription className="text-slate-400 font-medium py-4 leading-relaxed">
+                          Are you sure you want to remove {supplier.name} from the nexus? This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="pt-6">
+                        <AlertDialogCancel className="h-12 border-slate-200 rounded-xl font-bold bg-slate-50/50 hover:bg-slate-100 transition-colors">Abort</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => deleteMutation.mutate(supplier.id)}
+                          className="h-12 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                        >
+                          Confirm Removal
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
                 <div className="space-y-4">
@@ -231,7 +399,7 @@ export default function SuppliersPage() {
                     <div key={label} className="p-4 rounded-2xl bg-white/40 border border-slate-100 flex flex-col gap-1">
                       <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">{label} Target</span>
                       <span className="text-xs font-black text-slate-700 truncate opacity-60">
-                        {supplier[`${label.toLowerCase()}Url` as keyof Supplier] || "Not Defined"}
+                        {(supplier as any)[`${label.toLowerCase()}Url`] || "Not Defined"}
                       </span>
                     </div>
                   ))}

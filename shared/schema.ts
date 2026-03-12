@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, serial, integer, timestamp, real, unique, jsonb, index, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, real, unique, jsonb, index, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -97,8 +97,12 @@ export const insertSupplierSchema = createInsertSchema(suppliers).omit({
   id: true,
   createdAt: true,
 });
+export const updateSupplierSchema = createInsertSchema(suppliers).partial().omit({
+  createdAt: true,
+});
 export type Supplier = typeof suppliers.$inferSelect;
 export type InsertSupplier = z.infer<typeof insertSupplierSchema>;
+export type UpdateSupplier = z.infer<typeof updateSupplierSchema>;
 
 // Respondents
 export const respondents = pgTable("respondents", {
@@ -110,6 +114,10 @@ export const respondents = pgTable("respondents", {
   clientRid: text("client_rid"),
   oiSession: text("oi_session").notNull().unique(),
   status: text("status").default('started'),
+  s2sVerified: boolean("s2s_verified").default(false),
+  fraudScore: real("fraud_score").default(0.00),
+  s2sToken: text("s2s_token"),
+  s2sReceivedAt: timestamp("s2s_received_at"),
   startedAt: timestamp("started_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
   ipAddress: text("ip_address"),
@@ -125,6 +133,42 @@ export const insertRespondentSchema = createInsertSchema(respondents).omit({
 });
 export type Respondent = typeof respondents.$inferSelect;
 export type InsertRespondent = z.infer<typeof insertRespondentSchema>;
+
+// S2S Logs
+export const s2sLogs = pgTable("s2s_logs", {
+  id: serial("id").primaryKey(),
+  oiSession: text("oi_session").notNull(),
+  projectCode: text("project_code").notNull(),
+  supplierCode: text("supplier_code"),
+  status: text("status"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  payload: jsonb("payload").$type<any>(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertS2sLogSchema = createInsertSchema(s2sLogs).omit({
+  id: true,
+  createdAt: true,
+});
+export type S2sLog = typeof s2sLogs.$inferSelect;
+export type InsertS2sLog = z.infer<typeof insertS2sLogSchema>;
+
+// Project S2S Config
+export const projectS2sConfig = pgTable("project_s2s_config", {
+  id: serial("id").primaryKey(),
+  projectCode: text("project_code").notNull().unique(),
+  s2sSecret: text("s2s_secret").notNull(),
+  requireS2S: boolean("require_s2s").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertProjectS2sConfigSchema = createInsertSchema(projectS2sConfig).omit({
+  id: true,
+  createdAt: true,
+});
+export type ProjectS2sConfig = typeof projectS2sConfig.$inferSelect;
+export type InsertProjectS2sConfig = z.infer<typeof insertProjectS2sConfigSchema>;
 
 // Activity Logs
 export const activityLogs = pgTable("activity_logs", {
@@ -143,8 +187,41 @@ export const insertActivityLogSchema = createInsertSchema(activityLogs).omit({
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 
+export const supplierAssignments = pgTable("supplier_assignments", {
+  id: serial("id").primaryKey(),
+  projectCode: text("project_code").notNull(),
+  countryCode: text("country_code").notNull(),
+  supplierId: integer("supplier_id").notNull().references(() => suppliers.id, { onDelete: 'cascade' }),
+  generatedLink: text("generated_link").notNull(),
+  status: text("status").notNull().default("active"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    uq: unique().on(table.projectCode, table.countryCode, table.supplierId),
+  };
+});
+
+export const insertSupplierAssignmentSchema = createInsertSchema(supplierAssignments).omit({
+  id: true,
+  createdAt: true,
+});
+export type SupplierAssignment = typeof supplierAssignments.$inferSelect;
+export type InsertSupplierAssignment = z.infer<typeof insertSupplierAssignmentSchema>;
+
 // Legacy compatibility types
 export type SurveyResponse = Respondent;
 export type InsertResponse = InsertRespondent;
 export type ProjectCountryUrl = CountrySurvey;
 export type InsertProjectCountryUrl = InsertCountrySurvey;
+
+// Dashboard stats type
+export type DashboardStats = {
+  totalProjects: number;
+  totalRespondents: number;
+  completes: number;
+  terminates: number;
+  quotafulls: number;
+  securityTerminates: number;
+  activityData: { date: string; count: number }[];
+};

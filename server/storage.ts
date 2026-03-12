@@ -8,7 +8,8 @@ import {
   type Supplier, type InsertSupplier,
   type Respondent, type InsertRespondent,
   type ActivityLog, type InsertActivityLog,
-  type Client, type InsertClient
+  type Client, type InsertClient,
+  supplierAssignments, type SupplierAssignment, type InsertSupplierAssignment,
 } from "@shared/schema";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -33,6 +34,7 @@ export interface IStorage {
   getCountrySurveyByCode(projectCode: string, countryCode: string): Promise<CountrySurvey | undefined>;
   createCountrySurvey(survey: InsertCountrySurvey): Promise<CountrySurvey>;
   deleteCountrySurvey(id: number): Promise<void>;
+  deleteAllCountrySurveys(projectId: number): Promise<void>;
 
   // Suppliers
   getSuppliers(): Promise<Supplier[]>;
@@ -47,6 +49,7 @@ export interface IStorage {
   getRespondentBySession(oiSession: string): Promise<Respondent | undefined>;
   updateRespondentStatus(oiSession: string, status: string): Promise<Respondent | undefined>;
   checkDuplicateRespondent(projectCode: string, supplierCode: string, supplierRid: string): Promise<boolean>;
+  getRespondents(): Promise<Respondent[]>;
 
   // Activity Logs
   createActivityLog(log: InsertActivityLog): Promise<ActivityLog>;
@@ -54,17 +57,38 @@ export interface IStorage {
 
   // Stats
   getDashboardStats(): Promise<{
-    totalToday: number;
-    completesToday: number;
-    terminatesToday: number;
-    quotafullsToday: number;
+    totalProjects: number;
+    totalRespondents: number;
+    completes: number;
+    terminates: number;
+    quotafulls: number;
+    securityTerminates: number;
+    activityData: { date: string; count: number }[];
   }>;
+  getSystemPulseStats(): Promise<{
+    totalVolume: number;
+    successChain: number;
+    filteredOut: number;
+    securityAlerts: number;
+    ratePerMinute: number;
+    recentActivity: any[];
+  }>;
+
+  // RID Generation
+  generateClientRID(projectCode: string): Promise<string>;
 
   // Clients
   getClients(): Promise<Client[]>;
   createClient(client: InsertClient): Promise<Client>;
   updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined>;
   deleteClient(id: number): Promise<void>;
+
+  // Supplier Assignments
+  getSupplierAssignments(projectCode?: string, supplierId?: number): Promise<any[]>;
+  createSupplierAssignment(assignment: InsertSupplierAssignment): Promise<SupplierAssignment>;
+  updateSupplierAssignment(id: number, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined>;
+  deleteSupplierAssignment(id: number): Promise<void>;
+  getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: number): Promise<SupplierAssignment | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -112,6 +136,28 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async generateClientRID(projectCode: string): Promise<string> {
+    const [project] = await db
+      .update(projects)
+      .set({
+        ridCounter: sql`${projects.ridCounter} + 1`,
+      })
+      .where(eq(projects.projectCode, projectCode))
+      .returning();
+
+    if (!project) {
+      throw new Error(`Project with code ${projectCode} not found`);
+    }
+
+    const prefix = project.ridPrefix || "";
+    const countryCode = project.ridCountryCode || "";
+    const padding = project.ridPadding || 4;
+    const counter = project.ridCounter || 1;
+
+    const paddedCounter = counter.toString().padStart(padding, "0");
+    return `${prefix}${countryCode}${paddedCounter}`;
+  }
+
   async deleteProject(id: number): Promise<void> {
     await db.delete(projects).where(eq(projects.id, id));
   }
@@ -134,6 +180,10 @@ export class DatabaseStorage implements IStorage {
 
   async deleteCountrySurvey(id: number): Promise<void> {
     await db.delete(countrySurveys).where(eq(countrySurveys.id, id));
+  }
+
+  async deleteAllCountrySurveys(projectId: number): Promise<void> {
+    await db.delete(countrySurveys).where(eq(countrySurveys.projectId, projectId));
   }
 
   // Suppliers
@@ -195,6 +245,10 @@ export class DatabaseStorage implements IStorage {
     return Number(existing.count) > 0;
   }
 
+  async getRespondents(): Promise<Respondent[]> {
+    return db.select().from(respondents).orderBy(desc(respondents.startedAt));
+  }
+
   // Activity Logs
   async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
     const [created] = await db.insert(activityLogs).values(log).returning();
@@ -206,25 +260,95 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Stats
-  async getDashboardStats(): Promise<{
-    totalToday: number;
-    completesToday: number;
-    terminatesToday: number;
-    quotafullsToday: number;
-  }> {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-
-    const [total] = await db.select({ count: sql`count(*)` }).from(respondents).where(gte(respondents.startedAt, startOfToday));
-    const [completes] = await db.select({ count: sql`count(*)` }).from(respondents).where(and(gte(respondents.startedAt, startOfToday), eq(respondents.status, "complete")));
-    const [terminates] = await db.select({ count: sql`count(*)` }).from(respondents).where(and(gte(respondents.startedAt, startOfToday), eq(respondents.status, "terminate")));
-    const [quotafulls] = await db.select({ count: sql`count(*)` }).from(respondents).where(and(gte(respondents.startedAt, startOfToday), eq(respondents.status, "quotafull")));
+  async getDashboardStats() {
+    const [totalProjects] = await db.select({ count: sql`count(*)` }).from(projects);
+    const [totalRespondents] = await db.select({ count: sql`count(*)` }).from(respondents);
+    const [completes] = await db.select({ count: sql`count(*)` }).from(respondents).where(eq(respondents.status, "complete"));
+    const [terminates] = await db.select({ count: sql`count(*)` }).from(respondents).where(eq(respondents.status, "terminate"));
+    const [quotafulls] = await db.select({ count: sql`count(*)` }).from(respondents).where(eq(respondents.status, "quotafull"));
+    const [secTerms] = await db.select({ count: sql`count(*)` }).from(respondents).where(eq(respondents.status, "security-terminate"));
 
     return {
-      totalToday: Number(total.count),
-      completesToday: Number(completes.count),
-      terminatesToday: Number(terminates.count),
-      quotafullsToday: Number(quotafulls.count),
+      totalProjects: Number(totalProjects.count),
+      totalRespondents: Number(totalRespondents.count),
+      completes: Number(completes.count),
+      terminates: Number(terminates.count),
+      quotafulls: Number(quotafulls.count),
+      securityTerminates: Number(secTerms.count),
+      activityData: [],
+    };
+  }
+
+  async getSystemPulseStats() {
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+
+    const [total] = await db.select({ count: sql`count(*)` })
+      .from(respondents)
+      .where(gte(respondents.startedAt, oneDayAgo));
+
+    const [success] = await db.select({ count: sql`count(*)` })
+      .from(respondents)
+      .where(and(eq(respondents.status, "complete"), gte(respondents.startedAt, oneDayAgo)));
+
+    const [filtered] = await db.select({ count: sql`count(*)` })
+      .from(respondents)
+      .where(and(
+        sql`${respondents.status} IN ('terminate', 'quotafull')`,
+        gte(respondents.startedAt, oneDayAgo)
+      ));
+
+    const [alerts] = await db.select({ count: sql`count(*)` })
+      .from(respondents)
+      .where(and(
+        sql`${respondents.status} IN ('security-terminate', 'fraud')`,
+        gte(respondents.startedAt, oneDayAgo)
+      ));
+
+    const last24h = await db.select()
+      .from(respondents)
+      .where(and(
+        eq(respondents.projectCode, respondents.projectCode), // placeholder for future filtering if needed
+        gte(respondents.startedAt, oneDayAgo)
+      ));
+
+    const last5m = await db.select()
+      .from(respondents)
+      .where(gte(respondents.startedAt, fiveMinsAgo));
+
+    const recentActivity = await db.select()
+      .from(respondents)
+      .orderBy(desc(respondents.startedAt))
+      .limit(20)
+      .then(res => res.map(r => {
+        const mapped: Respondent = {
+          id: r.id,
+          status: r.status,
+          projectCode: r.projectCode,
+          countryCode: r.countryCode,
+          supplierCode: r.supplierCode,
+          supplierRid: r.supplierRid,
+          clientRid: r.clientRid,
+          oiSession: r.oiSession,
+          s2sVerified: r.s2sVerified ?? false,
+          fraudScore: r.fraudScore ?? 0,
+          s2sToken: r.s2sToken ?? null,
+          s2sReceivedAt: r.s2sReceivedAt ?? null,
+          startedAt: r.startedAt,
+          completedAt: r.completedAt,
+          ipAddress: r.ipAddress,
+          userAgent: r.userAgent,
+        };
+        return mapped;
+      }));
+
+    return {
+      totalVolume: last24h.length,
+      successChain: last24h.filter(r => r.status === 'complete' && r.s2sVerified).length,
+      filteredOut: last24h.filter(r => ['terminate', 'quotafull'].includes(r.status || '')).length,
+      securityAlerts: last24h.filter(r => ['security-terminate', 'fraud'].includes(r.status || '')).length,
+      ratePerMinute: Math.round(last5m.length / 5),
+      recentActivity: recentActivity
     };
   }
 
@@ -246,6 +370,63 @@ export class DatabaseStorage implements IStorage {
   async deleteClient(id: number): Promise<void> {
     await db.delete(clients).where(eq(clients.id, id));
   }
+
+  // Supplier Assignments
+  async getSupplierAssignments(projectCode?: string, supplierId?: number): Promise<any[]> {
+    let query = db.select({
+      id: supplierAssignments.id,
+      projectCode: supplierAssignments.projectCode,
+      countryCode: supplierAssignments.countryCode,
+      supplierId: supplierAssignments.supplierId,
+      generatedLink: supplierAssignments.generatedLink,
+      status: supplierAssignments.status,
+      notes: supplierAssignments.notes,
+      createdAt: supplierAssignments.createdAt,
+      supplierName: suppliers.name,
+      supplierCode: suppliers.code,
+      projectName: projects.projectName,
+    })
+    .from(supplierAssignments)
+    .leftJoin(suppliers, eq(supplierAssignments.supplierId, suppliers.id))
+    .leftJoin(projects, eq(supplierAssignments.projectCode, projects.projectCode));
+
+    const conditions = [];
+    if (projectCode) conditions.push(eq(supplierAssignments.projectCode, projectCode));
+    if (supplierId) conditions.push(eq(supplierAssignments.supplierId, supplierId));
+
+    if (conditions.length > 0) {
+      // @ts-ignore
+      query = query.where(and(...conditions));
+    }
+
+    return query.orderBy(desc(supplierAssignments.createdAt));
+  }
+
+  async createSupplierAssignment(assignment: InsertSupplierAssignment): Promise<SupplierAssignment> {
+    const [created] = await db.insert(supplierAssignments).values(assignment).returning();
+    return created;
+  }
+
+  async updateSupplierAssignment(id: number, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined> {
+    const [updated] = await db.update(supplierAssignments).set(data).where(eq(supplierAssignments.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSupplierAssignment(id: number): Promise<void> {
+    await db.delete(supplierAssignments).where(eq(supplierAssignments.id, id));
+  }
+
+  async getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: number): Promise<SupplierAssignment | undefined> {
+    const [found] = await db.select()
+      .from(supplierAssignments)
+      .where(and(
+        eq(supplierAssignments.projectCode, projectCode),
+        eq(supplierAssignments.countryCode, countryCode),
+        eq(supplierAssignments.supplierId, supplierId)
+      ))
+      .limit(1);
+    return found;
+  }
 }
 
 export class MemStorage implements IStorage {
@@ -256,6 +437,7 @@ export class MemStorage implements IStorage {
   private respondents: Map<number, Respondent>;
   private activityLogs: Map<number, ActivityLog>;
   private clients: Map<number, Client>;
+  private supplierAssignments: Map<number, SupplierAssignment>;
   private nextIds: Record<string, number>;
 
   constructor() {
@@ -273,8 +455,10 @@ export class MemStorage implements IStorage {
       suppliers: 1,
       respondents: 1,
       activityLogs: 1,
-      clients: 1
+      clients: 1,
+      supplierAssignments: 1
     };
+    this.supplierAssignments = new Map();
   }
 
   async getAdminByUsername(username: string): Promise<Admin | undefined> {
@@ -302,6 +486,27 @@ export class MemStorage implements IStorage {
   }
   async getProjectByCode(projectCode: string): Promise<Project | undefined> {
     return Array.from(this.projects.values()).find(p => p.projectCode === projectCode);
+  }
+
+  async generateClientRID(projectCode: string): Promise<string> {
+    const project = Array.from(this.projects.values()).find(p => p.projectCode === projectCode);
+    if (!project) {
+      throw new Error(`Project with code ${projectCode} not found`);
+    }
+
+    const counter = (project.ridCounter || 1);
+    const updatedCounter = counter + 1;
+
+    // Update the project in memory
+    const updatedProject = { ...project, ridCounter: updatedCounter };
+    this.projects.set(project.id, updatedProject);
+
+    const prefix = project.ridPrefix || "";
+    const countryCode = project.ridCountryCode || "";
+    const padding = project.ridPadding || 4;
+
+    const paddedCounter = counter.toString().padStart(padding, "0");
+    return `${prefix}${countryCode}${paddedCounter}`;
   }
   async createProject(project: InsertProject): Promise<Project> {
     const id = this.nextIds.projects++;
@@ -354,6 +559,12 @@ export class MemStorage implements IStorage {
   }
   async deleteCountrySurvey(id: number): Promise<void> {
     this.countrySurveys.delete(id);
+  }
+  async deleteAllCountrySurveys(projectId: number): Promise<void> {
+    const idsToDelete = Array.from(this.countrySurveys.values())
+      .filter(cs => cs.projectId === projectId)
+      .map(cs => cs.id);
+    idsToDelete.forEach(id => this.countrySurveys.delete(id));
   }
 
   async getSuppliers(): Promise<Supplier[]> {
@@ -421,9 +632,21 @@ export class MemStorage implements IStorage {
     return Array.from(this.respondents.values()).some(r => r.projectCode === projectCode && r.supplierCode === supplierCode && r.supplierRid === supplierRid);
   }
 
+  async getRespondents(): Promise<Respondent[]> {
+    return Array.from(this.respondents.values()).sort((a, b) => b.startedAt.getTime() - a.startedAt.getTime());
+  }
+
   async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
     const id = this.nextIds.activityLogs++;
-    const created: ActivityLog = { ...log, id, createdAt: new Date() };
+    const created: ActivityLog = {
+      ...log,
+      id,
+      createdAt: new Date(),
+      projectCode: log.projectCode || null,
+      oiSession: log.oiSession || null,
+      eventType: log.eventType || null,
+      meta: log.meta || null
+    };
     this.activityLogs.set(id, created);
     return created;
   }
@@ -433,17 +656,30 @@ export class MemStorage implements IStorage {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
-  async getDashboardStats(): Promise<{ totalToday: number; completesToday: number; terminatesToday: number; quotafullsToday: number; }> {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    const todayRes = Array.from(this.respondents.values()).filter(r => r.startedAt.getTime() >= now.getTime());
+  async getDashboardStats() {
+    const allRes = Array.from(this.respondents.values());
     return {
-      totalToday: todayRes.length,
-      completesToday: todayRes.filter(r => r.status === 'complete').length,
-      terminatesToday: todayRes.filter(r => r.status === 'terminate').length,
-      quotafullsToday: todayRes.filter(r => r.status === 'quotafull').length,
+      totalProjects: this.projects.size,
+      totalRespondents: allRes.length,
+      completes: allRes.filter(r => r.status === 'complete').length,
+      terminates: allRes.filter(r => r.status === 'terminate').length,
+      quotafulls: allRes.filter(r => r.status === 'quotafull').length,
+      securityTerminates: allRes.filter(r => r.status === 'security-terminate').length,
+      activityData: [],
     };
   }
+
+  async getSystemPulseStats() {
+    return {
+      totalVolume: 0,
+      successChain: 0,
+      filteredOut: 0,
+      securityAlerts: 0,
+      ratePerMinute: 0,
+      recentActivity: []
+    };
+  }
+
 
   // Clients
   async getClients(): Promise<Client[]> {
@@ -464,6 +700,62 @@ export class MemStorage implements IStorage {
   }
   async deleteClient(id: number): Promise<void> {
     this.clients.delete(id);
+  }
+
+  // Supplier Assignments
+  async getSupplierAssignments(projectCode?: string, supplierId?: number): Promise<any[]> {
+    let assignments = Array.from(this.supplierAssignments.values());
+    
+    if (projectCode) {
+      assignments = assignments.filter(a => a.projectCode === projectCode);
+    }
+    if (supplierId) {
+      assignments = assignments.filter(a => a.supplierId === supplierId);
+    }
+
+    return assignments.map(a => {
+      const supplier = Array.from(this.suppliers.values()).find(s => s.id === a.supplierId);
+      const project = Array.from(this.projects.values()).find(p => p.projectCode === a.projectCode);
+      return {
+        ...a,
+        supplierName: supplier?.name || "Unknown",
+        supplierCode: supplier?.code || "Unknown",
+        projectName: project?.projectName || "Unknown",
+      };
+    }).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async createSupplierAssignment(assignment: InsertSupplierAssignment): Promise<SupplierAssignment> {
+    const id = this.nextIds.supplierAssignments++;
+    const created: SupplierAssignment = {
+      ...assignment,
+      id,
+      status: assignment.status || "active",
+      notes: assignment.notes || null,
+      createdAt: new Date(),
+    };
+    this.supplierAssignments.set(id, created);
+    return created;
+  }
+
+  async updateSupplierAssignment(id: number, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined> {
+    const existing = this.supplierAssignments.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...data };
+    this.supplierAssignments.set(id, updated);
+    return updated;
+  }
+
+  async deleteSupplierAssignment(id: number): Promise<void> {
+    this.supplierAssignments.delete(id);
+  }
+
+  async getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: number): Promise<SupplierAssignment | undefined> {
+    return Array.from(this.supplierAssignments.values()).find(a => 
+      a.projectCode === projectCode && 
+      a.countryCode === countryCode && 
+      a.supplierId === supplierId
+    );
   }
 }
 

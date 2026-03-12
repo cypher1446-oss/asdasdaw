@@ -14,6 +14,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Form,
   FormControl,
   FormField,
@@ -41,6 +52,7 @@ export default function ClientsPage() {
     defaultValues: {
       name: "",
       email: "",
+      company: "",
       website: "",
     },
   });
@@ -125,6 +137,19 @@ export default function ClientsPage() {
                   />
                   <FormField
                     control={form.control}
+                    name="company"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Research Organization</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g. Acme Corp" {...field} className="h-12 bg-slate-50 border-slate-200 rounded-xl focus:ring-4 focus:ring-primary/5 transition-all text-slate-800 font-bold" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="website"
                     render={({ field }) => (
                       <FormItem>
@@ -163,16 +188,32 @@ export default function ClientsPage() {
                   <div className="p-3 bg-primary/10 rounded-2xl group-hover:bg-primary transition-all duration-500">
                     <Building2 className="h-6 w-6 text-primary group-hover:text-white transition-colors duration-500" />
                   </div>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Safely remove ${client.name}?`)) {
-                        deleteMutation.mutate(client.id);
-                      }
-                    }}
-                    className="p-2 text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button className="p-2 text-slate-200 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="bg-white border-slate-200 rounded-[2.5rem] shadow-2xl overflow-hidden p-0">
+                      <div className="p-10">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-2xl font-black text-rose-500 tracking-tight">Safely Remove Partner?</AlertDialogTitle>
+                          <AlertDialogDescription className="text-slate-400 font-medium py-4 leading-relaxed">
+                            Are you sure you want to remove {client.name}? This will terminate their access to the research routing nexus.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter className="pt-6">
+                          <AlertDialogCancel className="h-12 border-slate-200 rounded-xl font-bold bg-slate-50/50 hover:bg-slate-100 transition-colors">Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteMutation.mutate(client.id)}
+                            className="h-12 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest"
+                          >
+                            Confirm Removal
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
 
                 <div className="space-y-4">

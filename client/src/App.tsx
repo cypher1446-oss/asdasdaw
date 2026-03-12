@@ -25,8 +25,20 @@ import ClientsPage from "@/pages/admin/clients";
 import SuppliersPage from "@/pages/admin/suppliers";
 import RedirectsPage from "@/pages/admin/redirects";
 import SettingsPage from "@/pages/admin/settings";
+import LinkGeneratorPage from "@/pages/admin/link-generator";
+import S2SConfigPage from "@/pages/admin/projects/s2s";
 import PausedPage from "@/pages/paused";
 import { Loader2 } from "lucide-react";
+
+// New Public Landing Pages
+import CompletePageV2 from "@/pages/public/complete";
+import TerminatePageV2 from "@/pages/public/terminate";
+import QuotaFullPageV2 from "@/pages/public/quotafull";
+import SecurityPageV2 from "@/pages/public/security";
+import DuplicatePageV2 from "@/pages/public/duplicate";
+import ProjectClosedPageV2 from "@/pages/public/project-closed";
+import CountryUnavailablePageV2 from "@/pages/public/country-unavailable";
+import GeoMismatchPageV2 from "@/pages/public/geo-mismatch";
 
 function ProtectedRoute({ path, component: Component }: { path: string; component: React.ComponentType }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -91,8 +103,26 @@ function Router() {
       <Route path="/admin/settings">
         <ProtectedRoute path="/admin/settings" component={SettingsPage} />
       </Route>
+      <Route path="/admin/link-generator">
+        <ProtectedRoute path="/admin/link-generator" component={LinkGeneratorPage} />
+      </Route>
+      <Route path="/admin/projects/:code/s2s">
+        {(params) => (
+          <ProtectedRoute path={`/admin/projects/${params.code}/s2s`} component={S2SConfigPage} />
+        )}
+      </Route>
 
-      {/* User/Mock Routes */}
+      {/* New Public Landing Pages */}
+      <Route path="/pages/complete" component={CompletePageV2} />
+      <Route path="/pages/terminate" component={TerminatePageV2} />
+      <Route path="/pages/quotafull" component={QuotaFullPageV2} />
+      <Route path="/pages/security" component={SecurityPageV2} />
+      <Route path="/pages/duplicate" component={DuplicatePageV2} />
+      <Route path="/pages/project-closed" component={ProjectClosedPageV2} />
+      <Route path="/pages/country-unavailable" component={CountryUnavailablePageV2} />
+      <Route path="/pages/geo-mismatch" component={GeoMismatchPageV2} />
+
+      {/* Legacy / User/Mock Routes */}
       <Route path="/complete" component={CompletePage} />
       <Route path="/terminate" component={TerminatePage} />
       <Route path="/quotafull" component={QuotaFullPage} />
