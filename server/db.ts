@@ -5,11 +5,15 @@ import * as schema from "@shared/schema";
 
 if (!process.env.DATABASE_URL) {
   console.warn("DATABASE_URL must be set. Database operations will fail.");
+} else {
+  console.log("DATABASE_URL Protocol Check:", process.env.DATABASE_URL.slice(0, 15) + "...");
 }
 
 export const pool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+  ssl: process.env.DATABASE_URL?.includes('sslmode=require') || !process.env.DATABASE_URL?.includes('localhost') 
+    ? { rejectUnauthorized: false } 
+    : false,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
