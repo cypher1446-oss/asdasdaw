@@ -183,19 +183,19 @@ export async function registerRoutes(
   });
 
   app.get("/api/projects/:id", requireAdmin, async (req: Request, res: Response) => {
-    const project = await storage.getProjectById(Number(req.params.id));
+    const project = await storage.getProjectById(req.params.id as string);
     if (!project) return res.status(404).json({ message: "Project not found" });
     return res.json(project);
   });
 
   app.patch("/api/projects/:id", requireAdmin, async (req: Request, res: Response) => {
-    const project = await storage.updateProject(Number(req.params.id), req.body);
+    const project = await storage.updateProject(req.params.id as string, req.body);
     if (!project) return res.status(404).json({ message: "Project not found" });
     return res.json(project);
   });
 
   app.delete("/api/projects/:id", requireAdmin, async (req: Request, res: Response) => {
-    await storage.deleteProject(Number(req.params.id));
+    await storage.deleteProject(req.params.id as string);
     return res.json({ message: "Deleted" });
   });
 
@@ -246,17 +246,17 @@ export async function registerRoutes(
 
   // COUNTRY SURVEYS (v2 Mapping)
   app.get("/api/projects/:id/surveys", requireAdmin, async (req: Request, res: Response) => {
-    const surveys = await storage.getCountrySurveys(Number(req.params.id));
+    const surveys = await storage.getCountrySurveys(req.params.id as string);
     return res.json(surveys);
   });
 
   app.delete("/api/projects/:id/surveys/all", requireAdmin, async (req: Request, res: Response) => {
-    await storage.deleteAllCountrySurveys(Number(req.params.id));
+    await storage.deleteAllCountrySurveys(req.params.id as string);
     return res.json({ message: "All surveys deleted" });
   });
 
   app.post("/api/projects/:id/surveys", requireAdmin, async (req: Request, res: Response) => {
-    const parsed = insertCountrySurveySchema.safeParse({ ...req.body, projectId: Number(req.params.id) });
+    const parsed = insertCountrySurveySchema.safeParse({ ...req.body, projectId: req.params.id as string });
     if (!parsed.success) {
       return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
     }
@@ -265,7 +265,7 @@ export async function registerRoutes(
   });
 
   app.delete("/api/surveys/:id", requireAdmin, async (req: Request, res: Response) => {
-    await storage.deleteCountrySurvey(Number(req.params.id));
+    await storage.deleteCountrySurvey(req.params.id as string);
     return res.json({ message: "Deleted" });
   });
 
@@ -285,13 +285,13 @@ export async function registerRoutes(
   });
 
   app.patch("/api/suppliers/:id", requireAdmin, async (req: Request, res: Response) => {
-    const supplier = await storage.updateSupplier(Number(req.params.id), req.body);
+    const supplier = await storage.updateSupplier(req.params.id as string, req.body);
     if (!supplier) return res.status(404).json({ message: "Supplier not found" });
     return res.json(supplier);
   });
 
   app.delete("/api/suppliers/:id", requireAdmin, async (req: Request, res: Response) => {
-    await storage.deleteSupplier(Number(req.params.id));
+    await storage.deleteSupplier(req.params.id as string);
     return res.json({ message: "Deleted" });
   });
 
@@ -300,7 +300,7 @@ export async function registerRoutes(
     const { projectCode, supplierId } = req.query;
     const assignments = await storage.getSupplierAssignments(
       projectCode as string | undefined,
-      supplierId ? Number(supplierId) : undefined
+      supplierId as string | undefined
     );
     return res.json(assignments);
   });
@@ -309,7 +309,7 @@ export async function registerRoutes(
     const { projectCode, countryCode, supplierId, generatedLink, notes } = req.body;
 
     // Check for duplicate
-    const existing = await storage.getSupplierAssignmentByCombo(projectCode, countryCode, Number(supplierId));
+    const existing = await storage.getSupplierAssignmentByCombo(projectCode, countryCode, supplierId as string);
     if (existing) {
       return res.status(409).json({ message: "Assignment already exists for this project, country, and supplier." });
     }
@@ -324,13 +324,13 @@ export async function registerRoutes(
   });
 
   app.put("/api/link-generator/assignments/:id", requireAdmin, async (req: Request, res: Response) => {
-    const assignment = await storage.updateSupplierAssignment(Number(req.params.id), req.body);
+    const assignment = await storage.updateSupplierAssignment(req.params.id as string, req.body);
     if (!assignment) return res.status(404).json({ message: "Assignment not found" });
     return res.json(assignment);
   });
 
   app.delete("/api/link-generator/assignments/:id", requireAdmin, async (req: Request, res: Response) => {
-    await storage.deleteSupplierAssignment(Number(req.params.id));
+    await storage.deleteSupplierAssignment(req.params.id as string);
     return res.json({ message: "Deleted" });
   });
 
@@ -370,12 +370,12 @@ export async function registerRoutes(
   });
 
   app.patch("/api/clients/:id", requireAdmin, async (req: Request, res: Response) => {
-    const client = await storage.updateClient(Number(req.params.id), req.body);
+    const client = await storage.updateClient(req.params.id as string, req.body);
     return res.json(client);
   });
 
   app.delete("/api/clients/:id", requireAdmin, async (req: Request, res: Response) => {
-    await storage.deleteClient(Number(req.params.id));
+    await storage.deleteClient(req.params.id as string);
     return res.json({ message: "Deleted" });
   });
 

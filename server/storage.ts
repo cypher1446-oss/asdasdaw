@@ -17,32 +17,32 @@ import crypto from "crypto";
 export interface IStorage {
   // Auth
   getAdminByUsername(username: string): Promise<Admin | undefined>;
-  getAdminById(id: number): Promise<Admin | undefined>;
+  getAdminById(id: string): Promise<Admin | undefined>;
   createAdmin(admin: InsertAdmin): Promise<Admin>;
-  updateAdminPassword(id: number, passwordHash: string): Promise<void>;
+  updateAdminPassword(id: string, passwordHash: string): Promise<void>;
 
   // Projects
   getProjects(): Promise<Project[]>;
-  getProjectById(id: number): Promise<Project | undefined>;
+  getProjectById(id: string): Promise<Project | undefined>;
   getProjectByCode(projectCode: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
-  updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined>;
-  deleteProject(id: number): Promise<void>;
+  updateProject(id: string, project: Partial<InsertProject>): Promise<Project | undefined>;
+  deleteProject(id: string): Promise<void>;
 
   // Country Surveys
-  getCountrySurveys(projectId: number): Promise<CountrySurvey[]>;
+  getCountrySurveys(projectId: string): Promise<CountrySurvey[]>;
   getCountrySurveyByCode(projectCode: string, countryCode: string): Promise<CountrySurvey | undefined>;
   createCountrySurvey(survey: InsertCountrySurvey): Promise<CountrySurvey>;
-  deleteCountrySurvey(id: number): Promise<void>;
-  deleteAllCountrySurveys(projectId: number): Promise<void>;
+  deleteCountrySurvey(id: string): Promise<void>;
+  deleteAllCountrySurveys(projectId: string): Promise<void>;
 
   // Suppliers
   getSuppliers(): Promise<Supplier[]>;
-  getSupplierById(id: number): Promise<Supplier | undefined>;
+  getSupplierById(id: string): Promise<Supplier | undefined>;
   getSupplierByCode(code: string): Promise<Supplier | undefined>;
   createSupplier(supplier: InsertSupplier): Promise<Supplier>;
-  updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined>;
-  deleteSupplier(id: number): Promise<void>;
+  updateSupplier(id: string, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined>;
+  deleteSupplier(id: string): Promise<void>;
 
   // Respondents (Tracking)
   createRespondent(respondent: InsertRespondent): Promise<Respondent>;
@@ -80,15 +80,15 @@ export interface IStorage {
   // Clients
   getClients(): Promise<Client[]>;
   createClient(client: InsertClient): Promise<Client>;
-  updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined>;
-  deleteClient(id: number): Promise<void>;
+  updateClient(id: string, client: Partial<InsertClient>): Promise<Client | undefined>;
+  deleteClient(id: string): Promise<void>;
 
   // Supplier Assignments
-  getSupplierAssignments(projectCode?: string, supplierId?: number): Promise<any[]>;
+  getSupplierAssignments(projectCode?: string, supplierId?: string): Promise<any[]>;
   createSupplierAssignment(assignment: InsertSupplierAssignment): Promise<SupplierAssignment>;
-  updateSupplierAssignment(id: number, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined>;
-  deleteSupplierAssignment(id: number): Promise<void>;
-  getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: number): Promise<SupplierAssignment | undefined>;
+  updateSupplierAssignment(id: string, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined>;
+  deleteSupplierAssignment(id: string): Promise<void>;
+  getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: string): Promise<SupplierAssignment | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -97,7 +97,7 @@ export class DatabaseStorage implements IStorage {
     return admin;
   }
 
-  async getAdminById(id: number): Promise<Admin | undefined> {
+  async getAdminById(id: string): Promise<Admin | undefined> {
     const [admin] = await db.select().from(admins).where(eq(admins.id, id));
     return admin;
   }
@@ -107,7 +107,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateAdminPassword(id: number, passwordHash: string): Promise<void> {
+  async updateAdminPassword(id: string, passwordHash: string): Promise<void> {
     await db.update(admins).set({ passwordHash }).where(eq(admins.id, id));
   }
 
@@ -116,7 +116,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(projects).orderBy(desc(projects.createdAt));
   }
 
-  async getProjectById(id: number): Promise<Project | undefined> {
+  async getProjectById(id: string): Promise<Project | undefined> {
     const [project] = await db.select().from(projects).where(eq(projects.id, id));
     return project;
   }
@@ -131,7 +131,7 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined> {
+  async updateProject(id: string, project: Partial<InsertProject>): Promise<Project | undefined> {
     const [updated] = await db.update(projects).set(project).where(eq(projects.id, id)).returning();
     return updated;
   }
@@ -158,12 +158,12 @@ export class DatabaseStorage implements IStorage {
     return `${prefix}${countryCode}${paddedCounter}`;
   }
 
-  async deleteProject(id: number): Promise<void> {
+  async deleteProject(id: string): Promise<void> {
     await db.delete(projects).where(eq(projects.id, id));
   }
 
   // Country Surveys
-  async getCountrySurveys(projectId: number): Promise<CountrySurvey[]> {
+  async getCountrySurveys(projectId: string): Promise<CountrySurvey[]> {
     return db.select().from(countrySurveys).where(eq(countrySurveys.projectId, projectId));
   }
 
@@ -178,11 +178,11 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async deleteCountrySurvey(id: number): Promise<void> {
+  async deleteCountrySurvey(id: string): Promise<void> {
     await db.delete(countrySurveys).where(eq(countrySurveys.id, id));
   }
 
-  async deleteAllCountrySurveys(projectId: number): Promise<void> {
+  async deleteAllCountrySurveys(projectId: string): Promise<void> {
     await db.delete(countrySurveys).where(eq(countrySurveys.projectId, projectId));
   }
 
@@ -191,7 +191,7 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(suppliers).orderBy(desc(suppliers.createdAt));
   }
 
-  async getSupplierById(id: number): Promise<Supplier | undefined> {
+  async getSupplierById(id: string): Promise<Supplier | undefined> {
     const [supplier] = await db.select().from(suppliers).where(eq(suppliers.id, id));
     return supplier;
   }
@@ -206,12 +206,12 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined> {
+  async updateSupplier(id: string, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined> {
     const [updated] = await db.update(suppliers).set(supplier).where(eq(suppliers.id, id)).returning();
     return updated;
   }
 
-  async deleteSupplier(id: number): Promise<void> {
+  async deleteSupplier(id: string): Promise<void> {
     await db.delete(suppliers).where(eq(suppliers.id, id));
   }
 
@@ -362,17 +362,17 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined> {
+  async updateClient(id: string, client: Partial<InsertClient>): Promise<Client | undefined> {
     const [updated] = await db.update(clients).set(client).where(eq(clients.id, id)).returning();
     return updated;
   }
 
-  async deleteClient(id: number): Promise<void> {
+  async deleteClient(id: string): Promise<void> {
     await db.delete(clients).where(eq(clients.id, id));
   }
 
   // Supplier Assignments
-  async getSupplierAssignments(projectCode?: string, supplierId?: number): Promise<any[]> {
+  async getSupplierAssignments(projectCode?: string, supplierId?: string): Promise<any[]> {
     let query = db.select({
       id: supplierAssignments.id,
       projectCode: supplierAssignments.projectCode,
@@ -407,16 +407,16 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateSupplierAssignment(id: number, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined> {
+  async updateSupplierAssignment(id: string, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined> {
     const [updated] = await db.update(supplierAssignments).set(data).where(eq(supplierAssignments.id, id)).returning();
     return updated;
   }
 
-  async deleteSupplierAssignment(id: number): Promise<void> {
+  async deleteSupplierAssignment(id: string): Promise<void> {
     await db.delete(supplierAssignments).where(eq(supplierAssignments.id, id));
   }
 
-  async getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: number): Promise<SupplierAssignment | undefined> {
+  async getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: string): Promise<SupplierAssignment | undefined> {
     const [found] = await db.select()
       .from(supplierAssignments)
       .where(and(
@@ -430,15 +430,14 @@ export class DatabaseStorage implements IStorage {
 }
 
 export class MemStorage implements IStorage {
-  private admins: Map<number, Admin>;
-  private projects: Map<number, Project>;
-  private countrySurveys: Map<number, CountrySurvey>;
-  private suppliers: Map<number, Supplier>;
-  private respondents: Map<number, Respondent>;
-  private activityLogs: Map<number, ActivityLog>;
-  private clients: Map<number, Client>;
-  private supplierAssignments: Map<number, SupplierAssignment>;
-  private nextIds: Record<string, number>;
+  private admins: Map<string, Admin>;
+  private projects: Map<string, Project>;
+  private countrySurveys: Map<string, CountrySurvey>;
+  private suppliers: Map<string, Supplier>;
+  private respondents: Map<string, Respondent>;
+  private activityLogs: Map<string, ActivityLog>;
+  private clients: Map<string, Client>;
+  private supplierAssignments: Map<string, SupplierAssignment>;
 
   constructor() {
     this.admins = new Map();
@@ -448,32 +447,22 @@ export class MemStorage implements IStorage {
     this.respondents = new Map();
     this.activityLogs = new Map();
     this.clients = new Map();
-    this.nextIds = {
-      admins: 1,
-      projects: 1,
-      countrySurveys: 1,
-      suppliers: 1,
-      respondents: 1,
-      activityLogs: 1,
-      clients: 1,
-      supplierAssignments: 1
-    };
     this.supplierAssignments = new Map();
   }
 
   async getAdminByUsername(username: string): Promise<Admin | undefined> {
     return Array.from(this.admins.values()).find(a => a.username === username);
   }
-  async getAdminById(id: number): Promise<Admin | undefined> {
+  async getAdminById(id: string): Promise<Admin | undefined> {
     return this.admins.get(id);
   }
   async createAdmin(admin: InsertAdmin): Promise<Admin> {
-    const id = this.nextIds.admins++;
+    const id = crypto.randomUUID();
     const created: Admin = { ...admin, id, createdAt: new Date() };
     this.admins.set(id, created);
     return created;
   }
-  async updateAdminPassword(id: number, passwordHash: string): Promise<void> {
+  async updateAdminPassword(id: string, passwordHash: string): Promise<void> {
     const admin = this.admins.get(id);
     if (admin) this.admins.set(id, { ...admin, passwordHash });
   }
@@ -481,7 +470,7 @@ export class MemStorage implements IStorage {
   async getProjects(): Promise<Project[]> {
     return Array.from(this.projects.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
-  async getProjectById(id: number): Promise<Project | undefined> {
+  async getProjectById(id: string): Promise<Project | undefined> {
     return this.projects.get(id);
   }
   async getProjectByCode(projectCode: string): Promise<Project | undefined> {
@@ -509,7 +498,7 @@ export class MemStorage implements IStorage {
     return `${prefix}${countryCode}${paddedCounter}`;
   }
   async createProject(project: InsertProject): Promise<Project> {
-    const id = this.nextIds.projects++;
+    const id = crypto.randomUUID();
     const created: Project = {
       ...project,
       id,
@@ -528,39 +517,39 @@ export class MemStorage implements IStorage {
     this.projects.set(id, created);
     return created;
   }
-  async updateProject(id: number, project: Partial<InsertProject>): Promise<Project | undefined> {
+  async updateProject(id: string, project: Partial<InsertProject>): Promise<Project | undefined> {
     const existing = this.projects.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...project };
     this.projects.set(id, updated);
     return updated;
   }
-  async deleteProject(id: number): Promise<void> {
+  async deleteProject(id: string): Promise<void> {
     this.projects.delete(id);
   }
 
-  async getCountrySurveys(projectId: number): Promise<CountrySurvey[]> {
+  async getCountrySurveys(projectId: string): Promise<CountrySurvey[]> {
     return Array.from(this.countrySurveys.values()).filter(cs => cs.projectId === projectId);
   }
   async getCountrySurveyByCode(projectCode: string, countryCode: string): Promise<CountrySurvey | undefined> {
     return Array.from(this.countrySurveys.values()).find(cs => cs.projectCode === projectCode && cs.countryCode === countryCode);
   }
   async createCountrySurvey(survey: InsertCountrySurvey): Promise<CountrySurvey> {
-    const id = this.nextIds.countrySurveys++;
+    const id = crypto.randomUUID();
     const created: CountrySurvey = {
       ...survey,
       id,
-      projectId: survey.projectId || 0,
+      projectId: survey.projectId || "",
       status: survey.status || 'active',
       createdAt: new Date()
     };
     this.countrySurveys.set(id, created);
     return created;
   }
-  async deleteCountrySurvey(id: number): Promise<void> {
+  async deleteCountrySurvey(id: string): Promise<void> {
     this.countrySurveys.delete(id);
   }
-  async deleteAllCountrySurveys(projectId: number): Promise<void> {
+  async deleteAllCountrySurveys(projectId: string): Promise<void> {
     const idsToDelete = Array.from(this.countrySurveys.values())
       .filter(cs => cs.projectId === projectId)
       .map(cs => cs.id);
@@ -570,14 +559,14 @@ export class MemStorage implements IStorage {
   async getSuppliers(): Promise<Supplier[]> {
     return Array.from(this.suppliers.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
-  async getSupplierById(id: number): Promise<Supplier | undefined> {
+  async getSupplierById(id: string): Promise<Supplier | undefined> {
     return this.suppliers.get(id);
   }
   async getSupplierByCode(code: string): Promise<Supplier | undefined> {
     return Array.from(this.suppliers.values()).find(s => s.code === code);
   }
   async createSupplier(supplier: InsertSupplier): Promise<Supplier> {
-    const id = this.nextIds.suppliers++;
+    const id = crypto.randomUUID();
     const created: Supplier = {
       ...supplier,
       id,
@@ -590,19 +579,19 @@ export class MemStorage implements IStorage {
     this.suppliers.set(id, created);
     return created;
   }
-  async updateSupplier(id: number, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined> {
+  async updateSupplier(id: string, supplier: Partial<InsertSupplier>): Promise<Supplier | undefined> {
     const existing = this.suppliers.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...supplier };
     this.suppliers.set(id, updated);
     return updated;
   }
-  async deleteSupplier(id: number): Promise<void> {
+  async deleteSupplier(id: string): Promise<void> {
     this.suppliers.delete(id);
   }
 
   async createRespondent(respondent: InsertRespondent): Promise<Respondent> {
-    const id = this.nextIds.respondents++;
+    const id = crypto.randomUUID();
     const created: Respondent = {
       ...respondent,
       id,
@@ -641,7 +630,7 @@ export class MemStorage implements IStorage {
   }
 
   async createActivityLog(log: InsertActivityLog): Promise<ActivityLog> {
-    const id = this.nextIds.activityLogs++;
+    const id = crypto.randomUUID();
     const created: ActivityLog = {
       ...log,
       id,
@@ -690,24 +679,24 @@ export class MemStorage implements IStorage {
     return Array.from(this.clients.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
   async createClient(client: InsertClient): Promise<Client> {
-    const id = this.nextIds.clients++;
+    const id = crypto.randomUUID();
     const created: Client = { ...client, id, website: client.website || null, createdAt: new Date() };
     this.clients.set(id, created);
     return created;
   }
-  async updateClient(id: number, client: Partial<InsertClient>): Promise<Client | undefined> {
+  async updateClient(id: string, client: Partial<InsertClient>): Promise<Client | undefined> {
     const existing = this.clients.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...client };
     this.clients.set(id, updated);
     return updated;
   }
-  async deleteClient(id: number): Promise<void> {
+  async deleteClient(id: string): Promise<void> {
     this.clients.delete(id);
   }
 
   // Supplier Assignments
-  async getSupplierAssignments(projectCode?: string, supplierId?: number): Promise<any[]> {
+  async getSupplierAssignments(projectCode?: string, supplierId?: string): Promise<any[]> {
     let assignments = Array.from(this.supplierAssignments.values());
     
     if (projectCode) {
@@ -730,7 +719,7 @@ export class MemStorage implements IStorage {
   }
 
   async createSupplierAssignment(assignment: InsertSupplierAssignment): Promise<SupplierAssignment> {
-    const id = this.nextIds.supplierAssignments++;
+    const id = crypto.randomUUID();
     const created: SupplierAssignment = {
       ...assignment,
       id,
@@ -742,7 +731,7 @@ export class MemStorage implements IStorage {
     return created;
   }
 
-  async updateSupplierAssignment(id: number, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined> {
+  async updateSupplierAssignment(id: string, data: Partial<SupplierAssignment>): Promise<SupplierAssignment | undefined> {
     const existing = this.supplierAssignments.get(id);
     if (!existing) return undefined;
     const updated = { ...existing, ...data };
@@ -750,11 +739,11 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async deleteSupplierAssignment(id: number): Promise<void> {
+  async deleteSupplierAssignment(id: string): Promise<void> {
     this.supplierAssignments.delete(id);
   }
 
-  async getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: number): Promise<SupplierAssignment | undefined> {
+  async getSupplierAssignmentByCombo(projectCode: string, countryCode: string, supplierId: string): Promise<SupplierAssignment | undefined> {
     return Array.from(this.supplierAssignments.values()).find(a => 
       a.projectCode === projectCode && 
       a.countryCode === countryCode && 

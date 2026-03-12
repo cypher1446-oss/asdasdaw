@@ -6,7 +6,7 @@ const PgSession = connectPgSimple(session);
 
 declare module "express-session" {
   interface SessionData {
-    adminId?: number;
+    adminId?: string;
   }
 }
 import { pool } from "./db";

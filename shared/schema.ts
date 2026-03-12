@@ -5,7 +5,7 @@ import { z } from "zod";
 
 // Admin remains the same for auth
 export const admins = pgTable("admins", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   passwordHash: text("password_hash").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -20,7 +20,7 @@ export type Admin = typeof admins.$inferSelect;
 
 // Clients
 export const clients = pgTable("clients", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   email: text("email").notNull(),
   company: text("company").notNull(),
@@ -37,7 +37,7 @@ export type Client = typeof clients.$inferSelect;
 
 // Projects 
 export const projects = pgTable("projects", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   projectCode: text("project_code").notNull().unique(),
   projectName: text("project_name").notNull(),
   client: text("client"),
@@ -63,8 +63,8 @@ export type InsertProject = z.infer<typeof insertProjectSchema>;
 
 // Country Surveys
 export const countrySurveys = pgTable("country_surveys", {
-  id: serial("id").primaryKey(),
-  projectId: integer("project_id").references(() => projects.id, { onDelete: 'cascade' }),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
+  projectId: text("project_id").references(() => projects.id, { onDelete: 'cascade' }),
   projectCode: text("project_code").notNull(),
   countryCode: text("country_code").notNull(),
   surveyUrl: text("survey_url").notNull(),
@@ -83,7 +83,7 @@ export type InsertCountrySurvey = z.infer<typeof insertCountrySurveySchema>;
 
 // Suppliers
 export const suppliers = pgTable("suppliers", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   name: text("name").notNull(),
   code: text("code").notNull().unique(),
   completeUrl: text("complete_url"),
@@ -106,7 +106,7 @@ export type UpdateSupplier = z.infer<typeof updateSupplierSchema>;
 
 // Respondents
 export const respondents = pgTable("respondents", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   projectCode: text("project_code").notNull(),
   countryCode: text("country_code"),
   supplierCode: text("supplier_code"),
@@ -136,7 +136,7 @@ export type InsertRespondent = z.infer<typeof insertRespondentSchema>;
 
 // S2S Logs
 export const s2sLogs = pgTable("s2s_logs", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   oiSession: text("oi_session").notNull(),
   projectCode: text("project_code").notNull(),
   supplierCode: text("supplier_code"),
@@ -156,7 +156,7 @@ export type InsertS2sLog = z.infer<typeof insertS2sLogSchema>;
 
 // Project S2S Config
 export const projectS2sConfig = pgTable("project_s2s_config", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   projectCode: text("project_code").notNull().unique(),
   s2sSecret: text("s2s_secret").notNull(),
   requireS2S: boolean("require_s2s").default(true),
@@ -172,7 +172,7 @@ export type InsertProjectS2sConfig = z.infer<typeof insertProjectS2sConfigSchema
 
 // Activity Logs
 export const activityLogs = pgTable("activity_logs", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   projectCode: text("project_code"),
   oiSession: text("oi_session"),
   eventType: text("event_type"),
@@ -188,10 +188,10 @@ export type ActivityLog = typeof activityLogs.$inferSelect;
 export type InsertActivityLog = z.infer<typeof insertActivityLogSchema>;
 
 export const supplierAssignments = pgTable("supplier_assignments", {
-  id: serial("id").primaryKey(),
+  id: text("id").primaryKey().default(sql`gen_random_uuid()`),
   projectCode: text("project_code").notNull(),
   countryCode: text("country_code").notNull(),
-  supplierId: integer("supplier_id").notNull().references(() => suppliers.id, { onDelete: 'cascade' }),
+  supplierId: text("supplier_id").notNull().references(() => suppliers.id, { onDelete: 'cascade' }),
   generatedLink: text("generated_link").notNull(),
   status: text("status").notNull().default("active"),
   notes: text("notes"),
