@@ -7,6 +7,9 @@ const connectionString = process.env.DATABASE_URL || "postgres://dummy:dummy@loc
 
 export const pool = new pg.Pool({
   connectionString,
+  ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("localhost") 
+    ? { rejectUnauthorized: false } 
+    : false,
 });
 
 export const db = drizzle(pool, { schema });

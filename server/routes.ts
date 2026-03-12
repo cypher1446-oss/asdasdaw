@@ -26,26 +26,43 @@ export async function registerRoutes(
 
   // AUTH ROUTES
   app.post("/api/auth/login", async (req: Request, res: Response) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username and password are required" });
-    }
-    const admin = await storage.getAdminByUsername(username);
-    if (!admin) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    const valid = await bcrypt.compare(password, admin.passwordHash);
-    if (!valid) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-    req.session.adminId = admin.id;
-    req.session.save((err) => {
-      if (err) {
-        console.error("Session save error:", err);
-        return res.status(500).json({ message: "Internal server error during login" });
+    try {
+      const { username, password } = req.body;
+      console.log(`Login attempt for username: ${username}`);
+      
+      if (!username || !password) {
+        return res.status(400).json({ message: "Username and password are required" });
       }
-      return res.json({ id: admin.id, username: admin.username });
-    });
+
+      console.log("Fetching admin from storage...");
+      const admin = await storage.getAdminByUsername(username);
+      
+      if (!admin) {
+        console.log(`Login failed: Admin user ${username} not found`);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      console.log("Comparing passwords...");
+      const valid = await bcrypt.compare(password, admin.passwordHash);
+      if (!valid) {
+        console.log(`Login failed: Invalid password for ${username}`);
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      console.log(`Login successful for ${username}, saving session...`);
+      req.session.adminId = admin.id;
+      req.session.save((err) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ message: "Internal server error during login" });
+        }
+        console.log(`Session saved for ${username}`);
+        return res.json({ id: admin.id, username: admin.username });
+      });
+    } catch (error) {
+      console.error("Login route error:", error);
+      res.status(500).json({ message: "Internal server error during login execution" });
+    }
   });
 
   app.post("/api/auth/logout", (req: Request, res: Response) => {
