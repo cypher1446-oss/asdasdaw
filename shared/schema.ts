@@ -269,7 +269,7 @@ export const supplierAssignmentSchema = z.object({
   id: z.string(),
   projectCode: z.string(),
   countryCode: z.string(),
-  supplierId: z.string(),
+  supplierId: z.string().nullable().optional(),
   generatedLink: z.string(),
   status: z.string().default("active"),
   notes: z.string().nullable().optional(),

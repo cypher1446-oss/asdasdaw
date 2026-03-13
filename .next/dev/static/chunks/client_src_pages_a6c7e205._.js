@@ -8927,7 +8927,9 @@ function LinkGeneratorPage() {
     // Link Generation Logic
     const baseUrl = ("TURBOPACK compile-time value", "http://localhost:3000") || (("TURBOPACK compile-time truthy", 1) ? window.location.origin : "TURBOPACK unreachable");
     const generateLink = (projCode, countryCode, supplierCode)=>{
-        return `${baseUrl}/track?code=${projCode}&country=${countryCode}&sup=${supplierCode}&uid=[UID]`;
+        const base = `${baseUrl}/track?code=${projCode}&country=${countryCode}`;
+        if (supplierCode) return `${base}&sup=${supplierCode}&uid=[UID]`;
+        return `${base}&uid=[UID]`;
     };
     const createMutation = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f40$tanstack$2f$react$2d$query$2f$build$2f$modern$2f$useMutation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useMutation"])({
         mutationFn: {
@@ -9032,10 +9034,10 @@ function LinkGeneratorPage() {
         }["LinkGeneratorPage.useMutation[deleteMutation]"]
     });
     const handleGenerate = async ()=>{
-        if (!selectedProject || !selectedSupplier || selectedCountries.length === 0) {
+        if (!selectedProject || selectedCountries.length === 0) {
             toast({
                 title: "Invalid",
-                description: "Please select project, supplier, and at least one country.",
+                description: "Please select a project and at least one country.",
                 variant: "destructive"
             });
             return;
@@ -9043,13 +9045,13 @@ function LinkGeneratorPage() {
         setIsGenerating(true);
         try {
             for (const countryCode of selectedCountries){
-                const supplierObj = suppliers.find((s)=>s.id.toString() === selectedSupplier);
-                const supplierCode = supplierObj?.code || "";
+                const supplierObj = selectedSupplier ? suppliers.find((s)=>s.id.toString() === selectedSupplier) : null;
+                const supplierCode = supplierObj?.code || undefined;
                 const link = generateLink(selectedProject, countryCode, supplierCode);
                 await createMutation.mutateAsync({
                     projectCode: selectedProject,
                     countryCode,
-                    supplierId: selectedSupplier,
+                    supplierId: selectedSupplier || null,
                     generatedLink: link,
                     notes: notes,
                     status: "active"
@@ -9102,7 +9104,7 @@ function LinkGeneratorPage() {
                         children: "Link Generator"
                     }, void 0, false, {
                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                        lineNumber: 215,
+                        lineNumber: 217,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -9110,13 +9112,13 @@ function LinkGeneratorPage() {
                         children: "Generate and manage unique router links for suppliers."
                     }, void 0, false, {
                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                        lineNumber: 216,
+                        lineNumber: 218,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                lineNumber: 214,
+                lineNumber: 216,
                 columnNumber: 13
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9134,27 +9136,27 @@ function LinkGeneratorPage() {
                                                 className: "w-5 h-5 text-blue-600"
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 224,
+                                                lineNumber: 226,
                                                 columnNumber: 29
                                             }, this),
                                             "Generate New Links"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 223,
+                                        lineNumber: 225,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardDescription"], {
                                         children: "Assign specific links to a supplier."
                                     }, void 0, false, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 227,
+                                        lineNumber: 229,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                lineNumber: 222,
+                                lineNumber: 224,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["CardContent"], {
@@ -9171,7 +9173,7 @@ function LinkGeneratorPage() {
                                                         children: "Select Project"
                                                     }, void 0, false, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 232,
+                                                        lineNumber: 234,
                                                         columnNumber: 33
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9187,12 +9189,12 @@ function LinkGeneratorPage() {
                                                                             placeholder: "Select a project"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 236,
+                                                                            lineNumber: 238,
                                                                             columnNumber: 45
                                                                         }, this)
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 235,
+                                                                        lineNumber: 237,
                                                                         columnNumber: 41
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -9206,7 +9208,7 @@ function LinkGeneratorPage() {
                                                                                             className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("w-2 h-2 rounded-full", p.status === 'active' ? "bg-emerald-500" : "bg-orange-500")
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                            lineNumber: 242,
+                                                                                            lineNumber: 244,
                                                                                             columnNumber: 57
                                                                                         }, this),
                                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -9214,7 +9216,7 @@ function LinkGeneratorPage() {
                                                                                             children: p.projectCode
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                            lineNumber: 246,
+                                                                                            lineNumber: 248,
                                                                                             columnNumber: 57
                                                                                         }, this),
                                                                                         " - ",
@@ -9222,23 +9224,23 @@ function LinkGeneratorPage() {
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                    lineNumber: 241,
+                                                                                    lineNumber: 243,
                                                                                     columnNumber: 53
                                                                                 }, this)
                                                                             }, p.id, false, {
                                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                lineNumber: 240,
+                                                                                lineNumber: 242,
                                                                                 columnNumber: 49
                                                                             }, this))
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 238,
+                                                                        lineNumber: 240,
                                                                         columnNumber: 41
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 234,
+                                                                lineNumber: 236,
                                                                 columnNumber: 37
                                                             }, this),
                                                             selectedProject && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9259,12 +9261,12 @@ function LinkGeneratorPage() {
                                                                         className: "w-4 h-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 266,
+                                                                        lineNumber: 268,
                                                                         columnNumber: 53
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 256,
+                                                                    lineNumber: 258,
                                                                     columnNumber: 49
                                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
                                                                     variant: "outline",
@@ -9282,29 +9284,29 @@ function LinkGeneratorPage() {
                                                                         className: "w-4 h-4"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 279,
+                                                                        lineNumber: 281,
                                                                         columnNumber: 53
                                                                     }, this)
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 269,
+                                                                    lineNumber: 271,
                                                                     columnNumber: 49
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 254,
+                                                                lineNumber: 256,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 233,
+                                                        lineNumber: 235,
                                                         columnNumber: 33
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 231,
+                                                lineNumber: 233,
                                                 columnNumber: 29
                                             }, this),
                                             selectedProject && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9321,7 +9323,7 @@ function LinkGeneratorPage() {
                                                                         children: "Target Countries"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 291,
+                                                                        lineNumber: 293,
                                                                         columnNumber: 45
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -9329,13 +9331,13 @@ function LinkGeneratorPage() {
                                                                         children: "Select countries for this assignment"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 292,
+                                                                        lineNumber: 294,
                                                                         columnNumber: 45
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 290,
+                                                                lineNumber: 292,
                                                                 columnNumber: 41
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -9349,13 +9351,13 @@ function LinkGeneratorPage() {
                                                                 children: selectedCountries.length === projectCountries.length ? "Deselect All" : "Select All"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 294,
+                                                                lineNumber: 296,
                                                                 columnNumber: 41
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 289,
+                                                        lineNumber: 291,
                                                         columnNumber: 37
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9387,7 +9389,7 @@ function LinkGeneratorPage() {
                                                                             onClick: (e)=>e.stopPropagation()
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 320,
+                                                                            lineNumber: 322,
                                                                             columnNumber: 49
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
@@ -9396,13 +9398,13 @@ function LinkGeneratorPage() {
                                                                             children: c.countryCode
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 329,
+                                                                            lineNumber: 331,
                                                                             columnNumber: 49
                                                                         }, this)
                                                                     ]
                                                                 }, c.id, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 308,
+                                                                    lineNumber: 310,
                                                                     columnNumber: 45
                                                                 }, this)),
                                                             projectCountries.length === 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9412,7 +9414,7 @@ function LinkGeneratorPage() {
                                                                         className: "w-8 h-8 text-slate-200 mx-auto"
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 336,
+                                                                        lineNumber: 338,
                                                                         columnNumber: 49
                                                                     }, this),
                                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -9420,25 +9422,25 @@ function LinkGeneratorPage() {
                                                                         children: "No countries mapped for this project."
                                                                     }, void 0, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 337,
+                                                                        lineNumber: 339,
                                                                         columnNumber: 49
                                                                     }, this)
                                                                 ]
                                                             }, void 0, true, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 335,
+                                                                lineNumber: 337,
                                                                 columnNumber: 45
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 306,
+                                                        lineNumber: 308,
                                                         columnNumber: 37
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 288,
+                                                lineNumber: 290,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9449,7 +9451,7 @@ function LinkGeneratorPage() {
                                                         children: "Select Supplier"
                                                     }, void 0, false, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 345,
+                                                        lineNumber: 347,
                                                         columnNumber: 33
                                                     }, this),
                                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -9462,12 +9464,12 @@ function LinkGeneratorPage() {
                                                                     placeholder: "Select a supplier"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 348,
+                                                                    lineNumber: 350,
                                                                     columnNumber: 41
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 347,
+                                                                lineNumber: 349,
                                                                 columnNumber: 37
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -9482,7 +9484,7 @@ function LinkGeneratorPage() {
                                                                                     children: s.name
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                    lineNumber: 354,
+                                                                                    lineNumber: 356,
                                                                                     columnNumber: 53
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -9490,41 +9492,41 @@ function LinkGeneratorPage() {
                                                                                     children: s.code
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                    lineNumber: 355,
+                                                                                    lineNumber: 357,
                                                                                     columnNumber: 53
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 353,
+                                                                            lineNumber: 355,
                                                                             columnNumber: 49
                                                                         }, this)
                                                                     }, s.id, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 352,
+                                                                        lineNumber: 354,
                                                                         columnNumber: 45
                                                                     }, this))
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 350,
+                                                                lineNumber: 352,
                                                                 columnNumber: 37
                                                             }, this)
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 346,
+                                                        lineNumber: 348,
                                                         columnNumber: 33
                                                     }, this)
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 344,
+                                                lineNumber: 346,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 230,
+                                        lineNumber: 232,
                                         columnNumber: 25
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9535,7 +9537,7 @@ function LinkGeneratorPage() {
                                                 children: "Notes (Optional)"
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 365,
+                                                lineNumber: 367,
                                                 columnNumber: 29
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -9545,13 +9547,13 @@ function LinkGeneratorPage() {
                                                 onChange: (e)=>setNotes(e.target.value)
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 366,
+                                                lineNumber: 368,
                                                 columnNumber: 29
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 364,
+                                        lineNumber: 366,
                                         columnNumber: 25
                                     }, this),
                                     selectedProject && selectedCountries.length > 0 && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9564,22 +9566,22 @@ function LinkGeneratorPage() {
                                                         className: "w-3 h-3"
                                                     }, void 0, false, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 377,
+                                                        lineNumber: 379,
                                                         columnNumber: 37
                                                     }, this),
                                                     " Preview Format"
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 376,
+                                                lineNumber: 378,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
                                                 className: "text-xs font-mono text-blue-700 break-all bg-white p-2 rounded border border-blue-100 shadow-sm",
-                                                children: generateLink(selectedProject, selectedCountries[0], suppliers.find((s)=>s.id.toString() === selectedSupplier)?.code || "SUP")
+                                                children: generateLink(selectedProject, selectedCountries[0], selectedSupplier ? suppliers.find((s)=>s.id.toString() === selectedSupplier)?.code || undefined : undefined)
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 379,
+                                                lineNumber: 381,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -9591,50 +9593,50 @@ function LinkGeneratorPage() {
                                                 ]
                                             }, void 0, true, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 386,
+                                                lineNumber: 388,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 375,
+                                        lineNumber: 377,
                                         columnNumber: 29
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
                                         className: "w-full rounded-xl h-12 font-bold shadow-lg shadow-blue-200 mt-4 bg-blue-600 hover:bg-blue-700",
                                         onClick: handleGenerate,
-                                        disabled: isGenerating || !selectedProject || !selectedSupplier || selectedCountries.length === 0,
+                                        disabled: isGenerating || !selectedProject || selectedCountries.length === 0,
                                         children: [
                                             isGenerating ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$refresh$2d$cw$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__RefreshCw$3e$__["RefreshCw"], {
                                                 className: "w-5 h-5 animate-spin mr-2"
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 395,
+                                                lineNumber: 397,
                                                 columnNumber: 45
                                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$plus$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Plus$3e$__["Plus"], {
                                                 className: "w-5 h-5 mr-2"
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 395,
+                                                lineNumber: 397,
                                                 columnNumber: 99
                                             }, this),
                                             "Generate & Assign Links"
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 390,
+                                        lineNumber: 392,
                                         columnNumber: 25
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                lineNumber: 229,
+                                lineNumber: 231,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                        lineNumber: 221,
+                        lineNumber: 223,
                         columnNumber: 17
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9653,7 +9655,7 @@ function LinkGeneratorPage() {
                                                     children: "Search"
                                                 }, void 0, false, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 407,
+                                                    lineNumber: 409,
                                                     columnNumber: 33
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9663,7 +9665,7 @@ function LinkGeneratorPage() {
                                                             className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 409,
+                                                            lineNumber: 411,
                                                             columnNumber: 37
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -9673,19 +9675,19 @@ function LinkGeneratorPage() {
                                                             onChange: (e)=>setSearchQuery(e.target.value)
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 410,
+                                                            lineNumber: 412,
                                                             columnNumber: 37
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 408,
+                                                    lineNumber: 410,
                                                     columnNumber: 33
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                            lineNumber: 406,
+                                            lineNumber: 408,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9696,7 +9698,7 @@ function LinkGeneratorPage() {
                                                     children: "Project"
                                                 }, void 0, false, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 420,
+                                                    lineNumber: 422,
                                                     columnNumber: 33
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -9709,12 +9711,12 @@ function LinkGeneratorPage() {
                                                                 placeholder: "All Projects"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 423,
+                                                                lineNumber: 425,
                                                                 columnNumber: 41
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 422,
+                                                            lineNumber: 424,
                                                             columnNumber: 37
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -9725,7 +9727,7 @@ function LinkGeneratorPage() {
                                                                     children: "All Projects"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 426,
+                                                                    lineNumber: 428,
                                                                     columnNumber: 41
                                                                 }, this),
                                                                 Array.from(new Set(assignments.map((a)=>a.projectCode))).map((code)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -9733,25 +9735,25 @@ function LinkGeneratorPage() {
                                                                         children: code
                                                                     }, code, false, {
                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                        lineNumber: 428,
+                                                                        lineNumber: 430,
                                                                         columnNumber: 45
                                                                     }, this))
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 425,
+                                                            lineNumber: 427,
                                                             columnNumber: 37
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 421,
+                                                    lineNumber: 423,
                                                     columnNumber: 33
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                            lineNumber: 419,
+                                            lineNumber: 421,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9762,7 +9764,7 @@ function LinkGeneratorPage() {
                                                     children: "Status"
                                                 }, void 0, false, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 435,
+                                                    lineNumber: 437,
                                                     columnNumber: 33
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Select"], {
@@ -9775,12 +9777,12 @@ function LinkGeneratorPage() {
                                                                 placeholder: "All Status"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 438,
+                                                                lineNumber: 440,
                                                                 columnNumber: 41
                                                             }, this)
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 437,
+                                                            lineNumber: 439,
                                                             columnNumber: 37
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectContent"], {
@@ -9791,7 +9793,7 @@ function LinkGeneratorPage() {
                                                                     children: "All Status"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 441,
+                                                                    lineNumber: 443,
                                                                     columnNumber: 41
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -9799,7 +9801,7 @@ function LinkGeneratorPage() {
                                                                     children: "Active"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 442,
+                                                                    lineNumber: 444,
                                                                     columnNumber: 41
                                                                 }, this),
                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$select$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["SelectItem"], {
@@ -9807,25 +9809,25 @@ function LinkGeneratorPage() {
                                                                     children: "Paused"
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 443,
+                                                                    lineNumber: 445,
                                                                     columnNumber: 41
                                                                 }, this)
                                                             ]
                                                         }, void 0, true, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 440,
+                                                            lineNumber: 442,
                                                             columnNumber: 37
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 436,
+                                                    lineNumber: 438,
                                                     columnNumber: 33
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                            lineNumber: 434,
+                                            lineNumber: 436,
                                             columnNumber: 29
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -9843,7 +9845,7 @@ function LinkGeneratorPage() {
                                                     children: "Reset"
                                                 }, void 0, false, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 449,
+                                                    lineNumber: 451,
                                                     columnNumber: 33
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -9854,31 +9856,31 @@ function LinkGeneratorPage() {
                                                             className: "w-4 h-4"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 465,
+                                                            lineNumber: 467,
                                                             columnNumber: 37
                                                         }, this),
                                                         " Export"
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 461,
+                                                    lineNumber: 463,
                                                     columnNumber: 33
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                            lineNumber: 448,
+                                            lineNumber: 450,
                                             columnNumber: 29
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                    lineNumber: 405,
+                                    lineNumber: 407,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                lineNumber: 404,
+                                lineNumber: 406,
                                 columnNumber: 21
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$card$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Card"], {
@@ -9897,7 +9899,7 @@ function LinkGeneratorPage() {
                                                             children: "Project"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 477,
+                                                            lineNumber: 479,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableHead"], {
@@ -9905,7 +9907,7 @@ function LinkGeneratorPage() {
                                                             children: "Country"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 478,
+                                                            lineNumber: 480,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableHead"], {
@@ -9913,7 +9915,7 @@ function LinkGeneratorPage() {
                                                             children: "Supplier"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 479,
+                                                            lineNumber: 481,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableHead"], {
@@ -9921,7 +9923,7 @@ function LinkGeneratorPage() {
                                                             children: "Router Link"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 480,
+                                                            lineNumber: 482,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableHead"], {
@@ -9929,7 +9931,7 @@ function LinkGeneratorPage() {
                                                             children: "Status"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 481,
+                                                            lineNumber: 483,
                                                             columnNumber: 41
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableHead"], {
@@ -9937,18 +9939,18 @@ function LinkGeneratorPage() {
                                                             children: "Actions"
                                                         }, void 0, false, {
                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                            lineNumber: 482,
+                                                            lineNumber: 484,
                                                             columnNumber: 41
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 476,
+                                                    lineNumber: 478,
                                                     columnNumber: 37
                                                 }, this)
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 475,
+                                                lineNumber: 477,
                                                 columnNumber: 33
                                             }, this),
                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableBody"], {
@@ -9961,19 +9963,19 @@ function LinkGeneratorPage() {
                                                                 className: "w-8 h-8 animate-spin mx-auto mb-2 opacity-20"
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 489,
+                                                                lineNumber: 491,
                                                                 columnNumber: 49
                                                             }, this),
                                                             "Loading assignments..."
                                                         ]
                                                     }, void 0, true, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 488,
+                                                        lineNumber: 490,
                                                         columnNumber: 45
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 487,
+                                                    lineNumber: 489,
                                                     columnNumber: 41
                                                 }, this) : filteredAssignments.length === 0 ? /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableRow"], {
                                                     children: /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"], {
@@ -9982,12 +9984,12 @@ function LinkGeneratorPage() {
                                                         children: "No assignments found matching filters."
                                                     }, void 0, false, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 495,
+                                                        lineNumber: 497,
                                                         columnNumber: 45
                                                     }, this)
                                                 }, void 0, false, {
                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                    lineNumber: 494,
+                                                    lineNumber: 496,
                                                     columnNumber: 41
                                                 }, this) : filteredAssignments.map((a)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableRow"], {
                                                         className: "group transition-colors hover:bg-slate-50/50",
@@ -10002,7 +10004,7 @@ function LinkGeneratorPage() {
                                                                             children: a.projectCode
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 504,
+                                                                            lineNumber: 506,
                                                                             columnNumber: 57
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -10010,18 +10012,18 @@ function LinkGeneratorPage() {
                                                                             children: a.projectName
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 505,
+                                                                            lineNumber: 507,
                                                                             columnNumber: 57
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 503,
+                                                                    lineNumber: 505,
                                                                     columnNumber: 53
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 502,
+                                                                lineNumber: 504,
                                                                 columnNumber: 49
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"], {
@@ -10031,12 +10033,12 @@ function LinkGeneratorPage() {
                                                                     children: a.countryCode
                                                                 }, void 0, false, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 509,
+                                                                    lineNumber: 511,
                                                                     columnNumber: 53
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 508,
+                                                                lineNumber: 510,
                                                                 columnNumber: 49
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"], {
@@ -10048,7 +10050,7 @@ function LinkGeneratorPage() {
                                                                             children: a.supplierName
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 515,
+                                                                            lineNumber: 517,
                                                                             columnNumber: 57
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
@@ -10059,18 +10061,18 @@ function LinkGeneratorPage() {
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 516,
+                                                                            lineNumber: 518,
                                                                             columnNumber: 57
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 514,
+                                                                    lineNumber: 516,
                                                                     columnNumber: 53
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 513,
+                                                                lineNumber: 515,
                                                                 columnNumber: 49
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"], {
@@ -10082,7 +10084,7 @@ function LinkGeneratorPage() {
                                                                             children: a.generatedLink
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 521,
+                                                                            lineNumber: 523,
                                                                             columnNumber: 57
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -10094,23 +10096,23 @@ function LinkGeneratorPage() {
                                                                                 className: "w-3.5 h-3.5"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                lineNumber: 530,
+                                                                                lineNumber: 532,
                                                                                 columnNumber: 61
                                                                             }, this)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 524,
+                                                                            lineNumber: 526,
                                                                             columnNumber: 57
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 520,
+                                                                    lineNumber: 522,
                                                                     columnNumber: 53
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 519,
+                                                                lineNumber: 521,
                                                                 columnNumber: 49
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"], {
@@ -10121,14 +10123,14 @@ function LinkGeneratorPage() {
                                                                             className: "w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 537,
+                                                                            lineNumber: 539,
                                                                             columnNumber: 61
                                                                         }, this),
                                                                         "Active"
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 536,
+                                                                    lineNumber: 538,
                                                                     columnNumber: 57
                                                                 }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
                                                                     className: "rounded-lg bg-orange-50 text-orange-700 border-orange-100 font-bold px-2 py-0.5 flex items-center gap-1.5 w-fit",
@@ -10137,19 +10139,19 @@ function LinkGeneratorPage() {
                                                                             className: "w-1.5 h-1.5 rounded-full bg-orange-500"
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 542,
+                                                                            lineNumber: 544,
                                                                             columnNumber: 61
                                                                         }, this),
                                                                         "Paused"
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 541,
+                                                                    lineNumber: 543,
                                                                     columnNumber: 57
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 534,
+                                                                lineNumber: 536,
                                                                 columnNumber: 49
                                                             }, this),
                                                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$table$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["TableCell"], {
@@ -10171,18 +10173,18 @@ function LinkGeneratorPage() {
                                                                                 className: "w-4 h-4"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                lineNumber: 560,
+                                                                                lineNumber: 562,
                                                                                 columnNumber: 86
                                                                             }, this) : /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$lucide$2d$react$2f$dist$2f$esm$2f$icons$2f$play$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$export__default__as__Play$3e$__["Play"], {
                                                                                 className: "w-4 h-4"
                                                                             }, void 0, false, {
                                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                lineNumber: 560,
+                                                                                lineNumber: 562,
                                                                                 columnNumber: 118
                                                                             }, this)
                                                                         }, void 0, false, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 549,
+                                                                            lineNumber: 551,
                                                                             columnNumber: 57
                                                                         }, this),
                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialog"], {
@@ -10199,17 +10201,17 @@ function LinkGeneratorPage() {
                                                                                             className: "w-4 h-4"
                                                                                         }, void 0, false, {
                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                            lineNumber: 571,
+                                                                                            lineNumber: 573,
                                                                                             columnNumber: 69
                                                                                         }, this)
                                                                                     }, void 0, false, {
                                                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                        lineNumber: 564,
+                                                                                        lineNumber: 566,
                                                                                         columnNumber: 65
                                                                                     }, this)
                                                                                 }, void 0, false, {
                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                    lineNumber: 563,
+                                                                                    lineNumber: 565,
                                                                                     columnNumber: 61
                                                                                 }, this),
                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogContent"], {
@@ -10222,7 +10224,7 @@ function LinkGeneratorPage() {
                                                                                                     children: "Delete Assignment?"
                                                                                                 }, void 0, false, {
                                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                                    lineNumber: 576,
+                                                                                                    lineNumber: 578,
                                                                                                     columnNumber: 69
                                                                                                 }, this),
                                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogDescription"], {
@@ -10234,7 +10236,7 @@ function LinkGeneratorPage() {
                                                                                                             children: a.supplierName
                                                                                                         }, void 0, false, {
                                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                                            lineNumber: 578,
+                                                                                                            lineNumber: 580,
                                                                                                             columnNumber: 125
                                                                                                         }, this),
                                                                                                         " on project ",
@@ -10243,7 +10245,7 @@ function LinkGeneratorPage() {
                                                                                                             children: a.projectCode
                                                                                                         }, void 0, false, {
                                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                                            lineNumber: 578,
+                                                                                                            lineNumber: 580,
                                                                                                             columnNumber: 203
                                                                                                         }, this),
                                                                                                         " (",
@@ -10252,13 +10254,13 @@ function LinkGeneratorPage() {
                                                                                                     ]
                                                                                                 }, void 0, true, {
                                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                                    lineNumber: 577,
+                                                                                                    lineNumber: 579,
                                                                                                     columnNumber: 69
                                                                                                 }, this)
                                                                                             ]
                                                                                         }, void 0, true, {
                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                            lineNumber: 575,
+                                                                                            lineNumber: 577,
                                                                                             columnNumber: 65
                                                                                         }, this),
                                                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogFooter"], {
@@ -10268,7 +10270,7 @@ function LinkGeneratorPage() {
                                                                                                     children: "Cancel"
                                                                                                 }, void 0, false, {
                                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                                    lineNumber: 582,
+                                                                                                    lineNumber: 584,
                                                                                                     columnNumber: 69
                                                                                                 }, this),
                                                                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$client$2f$src$2f$components$2f$ui$2f$alert$2d$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["AlertDialogAction"], {
@@ -10277,81 +10279,81 @@ function LinkGeneratorPage() {
                                                                                                     children: "Delete Assignment"
                                                                                                 }, void 0, false, {
                                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                                    lineNumber: 583,
+                                                                                                    lineNumber: 585,
                                                                                                     columnNumber: 69
                                                                                                 }, this)
                                                                                             ]
                                                                                         }, void 0, true, {
                                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                            lineNumber: 581,
+                                                                                            lineNumber: 583,
                                                                                             columnNumber: 65
                                                                                         }, this)
                                                                                     ]
                                                                                 }, void 0, true, {
                                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                                    lineNumber: 574,
+                                                                                    lineNumber: 576,
                                                                                     columnNumber: 61
                                                                                 }, this)
                                                                             ]
                                                                         }, void 0, true, {
                                                                             fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                            lineNumber: 562,
+                                                                            lineNumber: 564,
                                                                             columnNumber: 57
                                                                         }, this)
                                                                     ]
                                                                 }, void 0, true, {
                                                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                    lineNumber: 548,
+                                                                    lineNumber: 550,
                                                                     columnNumber: 53
                                                                 }, this)
                                                             }, void 0, false, {
                                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                                lineNumber: 547,
+                                                                lineNumber: 549,
                                                                 columnNumber: 49
                                                             }, this)
                                                         ]
                                                     }, a.id, true, {
                                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                        lineNumber: 501,
+                                                        lineNumber: 503,
                                                         columnNumber: 45
                                                     }, this))
                                             }, void 0, false, {
                                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                                lineNumber: 485,
+                                                lineNumber: 487,
                                                 columnNumber: 33
                                             }, this)
                                         ]
                                     }, void 0, true, {
                                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                        lineNumber: 474,
+                                        lineNumber: 476,
                                         columnNumber: 29
                                     }, this)
                                 }, void 0, false, {
                                     fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                    lineNumber: 473,
+                                    lineNumber: 475,
                                     columnNumber: 25
                                 }, this)
                             }, void 0, false, {
                                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                                lineNumber: 472,
+                                lineNumber: 474,
                                 columnNumber: 21
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                        lineNumber: 402,
+                        lineNumber: 404,
                         columnNumber: 17
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-                lineNumber: 219,
+                lineNumber: 221,
                 columnNumber: 13
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/client/src/pages/admin/link-generator.tsx",
-        lineNumber: 212,
+        lineNumber: 214,
         columnNumber: 9
     }, this);
 }

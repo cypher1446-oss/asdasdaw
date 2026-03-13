@@ -96,8 +96,10 @@ export default function LinkGeneratorPage() {
     // Link Generation Logic
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
     
-    const generateLink = (projCode: string, countryCode: string, supplierCode: string) => {
-        return `${baseUrl}/track?code=${projCode}&country=${countryCode}&sup=${supplierCode}&uid=[UID]`;
+    const generateLink = (projCode: string, countryCode: string, supplierCode?: string) => {
+        const base = `${baseUrl}/track?code=${projCode}&country=${countryCode}`;
+        if (supplierCode) return `${base}&sup=${supplierCode}&uid=[UID]`;
+        return `${base}&uid=[UID]`;
     };
 
     const createMutation = useMutation({
@@ -155,21 +157,21 @@ export default function LinkGeneratorPage() {
     });
 
     const handleGenerate = async () => {
-        if (!selectedProject || !selectedSupplier || selectedCountries.length === 0) {
-            toast({ title: "Invalid", description: "Please select project, supplier, and at least one country.", variant: "destructive" });
+        if (!selectedProject || selectedCountries.length === 0) {
+            toast({ title: "Invalid", description: "Please select a project and at least one country.", variant: "destructive" });
             return;
         }
 
         setIsGenerating(true);
         try {
             for (const countryCode of selectedCountries) {
-                const supplierObj = suppliers.find(s => s.id.toString() === selectedSupplier);
-                const supplierCode = supplierObj?.code || "";
+                const supplierObj = selectedSupplier ? suppliers.find(s => s.id.toString() === selectedSupplier) : null;
+                const supplierCode = supplierObj?.code || undefined;
                 const link = generateLink(selectedProject, countryCode, supplierCode);
                 await createMutation.mutateAsync({
                     projectCode: selectedProject,
                     countryCode,
-                    supplierId: selectedSupplier,
+                    supplierId: selectedSupplier || null,
                     generatedLink: link,
                     notes: notes,
                     status: "active"
@@ -380,7 +382,7 @@ export default function LinkGeneratorPage() {
                                     {generateLink(
                                         selectedProject, 
                                         selectedCountries[0], 
-                                        suppliers.find(s => s.id.toString() === selectedSupplier)?.code || "SUP"
+                                        selectedSupplier ? (suppliers.find(s => s.id.toString() === selectedSupplier)?.code || undefined) : undefined
                                     )}
                                 </p>
                                 <p className="text-[10px] text-blue-500 mt-2 italic">Generating {selectedCountries.length} unique link(s)...</p>
@@ -390,7 +392,7 @@ export default function LinkGeneratorPage() {
                         <Button 
                             className="w-full rounded-xl h-12 font-bold shadow-lg shadow-blue-200 mt-4 bg-blue-600 hover:bg-blue-700"
                             onClick={handleGenerate}
-                            disabled={isGenerating || !selectedProject || !selectedSupplier || selectedCountries.length === 0}
+                            disabled={isGenerating || !selectedProject || selectedCountries.length === 0}
                         >
                             {isGenerating ? <RefreshCw className="w-5 h-5 animate-spin mr-2" /> : <Plus className="w-5 h-5 mr-2" />}
                             Generate & Assign Links

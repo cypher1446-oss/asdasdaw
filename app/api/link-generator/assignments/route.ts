@@ -25,14 +25,17 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const { projectCode, countryCode, supplierId } = body;
 
-  // Check for duplicate
-  const existing = await storage.getSupplierAssignmentByCombo(projectCode, countryCode, supplierId);
-  if (existing) {
-    return NextResponse.json({ message: "Assignment already exists for this project, country, and supplier." }, { status: 409 });
+  // Check for duplicate — only if supplierId is provided
+  if (supplierId) {
+    const existing = await storage.getSupplierAssignmentByCombo(projectCode, countryCode, supplierId);
+    if (existing) {
+      return NextResponse.json({ message: "Assignment already exists for this project, country, and supplier." }, { status: 409 });
+    }
   }
 
   const parsed = insertSupplierAssignmentSchema.safeParse(body);
   if (!parsed.success) {
+    console.error("Validation errors:", JSON.stringify(parsed.error.flatten()));
     return NextResponse.json({ message: "Validation failed", errors: parsed.error.flatten() }, { status: 400 });
   }
 
