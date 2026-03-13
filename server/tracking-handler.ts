@@ -10,28 +10,34 @@ export async function handleTracking(req: NextRequest, projectCodeParam?: string
   const sup = searchParams.get("sup");
   const uid = searchParams.get("uid");
 
-  if (!code || !country || !sup || !uid) {
-    return new Response(`Missing tracking parameters (code: ${code}, country: ${country}, sup: ${sup}, uid: ${uid})`, { status: 400 });
+  if (!code || !country) {
+    return new Response(`Missing tracking parameters (code: ${code}, country: ${country})`, { status: 400 });
   }
 
   const projectCode = code;
   const countryCode = country;
-  const supplierCode = sup;
-  const supplierRid = uid;
+  const oiSession = randomUUID();
+
+  const supplierCode = sup || "DIRECT";
+  const supplierRid = uid || `DIR-${oiSession.split('-')[0]}`;
 
   try {
-    // 1. Validate Project and Supplier
+    // 1. Validate Project
     const project = await storage.getProjectByCode(projectCode);
     if (!project || project.status !== "active") {
       console.log(`Tracking 404: Project not found or inactive. Code: ${projectCode}`);
       return new Response("Project not found or inactive", { status: 404 });
     }
 
-    const supplier = await storage.getSupplierByCode(supplierCode);
-    if (!supplier) {
-      console.log(`Tracking 404: Supplier not found. Code: ${supplierCode}`);
-      return new Response("Supplier not found", { status: 404 });
+    // Validate Supplier only if provided
+    if (sup) {
+      const supplier = await storage.getSupplierByCode(supplierCode);
+      if (!supplier) {
+        console.log(`Tracking 404: Supplier not found. Code: ${supplierCode}`);
+        return new Response("Supplier not found", { status: 404 });
+      }
     }
+
 
     // 2. Validate Country Survey
     const countrySurvey = await storage.getCountrySurveyByCode(projectCode, countryCode);
@@ -71,7 +77,8 @@ export async function handleTracking(req: NextRequest, projectCodeParam?: string
     const clientRid = await storage.generateClientRID(projectCode);
 
     // 5. Create Respondent Session
-    const oiSession = randomUUID();
+    // oiSession is already declared above
+
     
     // S2S Generation
     let s2sToken = null;
@@ -104,17 +111,28 @@ export async function handleTracking(req: NextRequest, projectCodeParam?: string
       meta: { details: `Respondent started. Redirecting to client survey.` }
     });
 
-    // 7. Redirect to Client Survey URL
+    // 7. Redirect to Client Survey URL — use same replacements as server/routes.ts
     let redirectUrl = countrySurvey.surveyUrl
-      .replace("{RID}", clientRid)
-      .replace("{oi_session}", oiSession);
+      .replaceAll("{RID}", clientRid)
+      .replaceAll("[RID]", clientRid)
+      .replaceAll("{rid}", clientRid)
+      .replaceAll("{uid}", clientRid)
+      .replaceAll("[UID]", clientRid)
+      .replaceAll("{oi_session}", oiSession);
 
     if (s2sToken) {
       const separator = redirectUrl.includes("?") ? "&" : "?";
       redirectUrl += `${separator}s2s_token=${s2sToken}`;
     }
 
-    return NextResponse.redirect(new URL(redirectUrl));
+    // Append oi_session if not already in URL (match routes.ts)
+    if (!redirectUrl.includes("oi_session=")) {
+      const separator = redirectUrl.includes("?") ? "&" : "?";
+      redirectUrl += `${separator}oi_session=${oiSession}`;
+    }
+
+    console.log(`Tracking: Redirecting to ${redirectUrl}`);
+    return NextResponse.redirect(new URL(redirectUrl, req.url));
 
   } catch (err: any) {
     console.error("Tracking Error:", err);

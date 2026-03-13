@@ -7,7 +7,11 @@ vite.config.ts.*
 nul
 .local/
 next-app/.next/
+.next/
 .vercel
+build/
+*.js.map
+*.js.map*
 
 # InsForge & AI agent skills
 .insforge

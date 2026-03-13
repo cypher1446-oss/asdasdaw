@@ -60,7 +60,7 @@ export const respondents = pgTable("respondents", {
   projectCode: text("project_code").notNull(),
   countryCode: text("country_code"),
   supplierCode: text("supplier_code"),
-  supplierRid: text("supplier_rid").notNull(),
+  supplierRid: text("supplier_rid"),
   clientRid: text("client_rid"),
   oiSession: text("oi_session").notNull().unique(),
   status: text("status").default("started"),
@@ -72,6 +72,7 @@ export const respondents = pgTable("respondents", {
   completedAt: timestamp("completed_at"),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
+  surveyUrl: text("survey_url"),
 });
 
 export const activityLogs = pgTable("activity_logs", {
@@ -87,7 +88,7 @@ export const supplierAssignments = pgTable("supplier_assignments", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectCode: text("project_code").notNull(),
   countryCode: text("country_code").notNull(),
-  supplierId: uuid("supplier_id").notNull().references(() => suppliers.id, { onDelete: 'cascade' }),
+  supplierId: uuid("supplier_id").references(() => suppliers.id, { onDelete: 'cascade' }),
   generatedLink: text("generated_link").notNull(),
   status: text("status").default("active"),
   notes: text("notes"),
@@ -236,6 +237,7 @@ export const respondentSchema = z.object({
   completedAt: z.date().nullable().optional(),
   ipAddress: z.string().nullable().optional(),
   userAgent: z.string().nullable().optional(),
+  surveyUrl: z.string().nullable().optional(),
 });
 
 export const insertRespondentSchema = respondentSchema.omit({

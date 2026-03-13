@@ -306,24 +306,39 @@ export async function registerRoutes(
   });
 
   app.post("/api/link-generator/assignments", requireAdmin, async (req: Request, res: Response) => {
-    const { projectCode, countryCode, supplierId, generatedLink, notes } = req.body;
+    try {
+      const { project_code, country_code, supplier_id, generated_link, notes } = req.body;
+      const projectCode = project_code || req.body.projectCode;
+      const countryCode = country_code || req.body.countryCode;
+      const supplierId = supplier_id || req.body.supplierId;
+      const generatedLink = generated_link || req.body.generatedLink;
 
-    // Check for duplicate — only if supplierId is provided
-    if (supplierId) {
-      const existing = await storage.getSupplierAssignmentByCombo(projectCode, countryCode, supplierId as string);
-      if (existing) {
-        return res.status(409).json({ message: "Assignment already exists for this project, country, and supplier." });
+      if (!projectCode || !countryCode || !generatedLink) {
+        return res.status(400).json({ message: "projectCode, countryCode, and generatedLink are required" });
       }
-    }
 
-    const parsed = insertSupplierAssignmentSchema.safeParse(req.body);
-    if (!parsed.success) {
-      console.error("Link Generator validation errors:", JSON.stringify(parsed.error.flatten()));
-      return res.status(400).json({ message: "Validation failed", errors: parsed.error.flatten() });
-    }
+      // Check for duplicate — only if supplierId is provided
+      if (supplierId) {
+        const existing = await storage.getSupplierAssignmentByCombo(projectCode, countryCode, supplierId);
+        if (existing) {
+          return res.status(409).json({ message: "Assignment already exists for this project, country, and supplier." });
+        }
+      }
 
-    const assignment = await storage.createSupplierAssignment(parsed.data);
-    return res.status(201).json(assignment);
+      const assignment = await storage.createSupplierAssignment({
+        projectCode,
+        countryCode,
+        supplierId: supplierId || null,
+        generatedLink,
+        notes: notes || null,
+        status: 'active'
+      });
+      
+      return res.status(201).json(assignment);
+    } catch (error: any) {
+      console.error("Link Generator Error:", error);
+      return res.status(500).json({ message: "Internal server error", detail: error.message });
+    }
   });
 
   app.put("/api/link-generator/assignments/:id", requireAdmin, async (req: Request, res: Response) => {
@@ -382,76 +397,109 @@ export async function registerRoutes(
     return res.json({ message: "Deleted" });
   });
 
-  // ====== REDIRECT TRACKING ENDPOINT (/track) ======
+  // ====== REDIRECT TRACKING ENDPOINT (/track and /t/:code) ======
   // https://router.domain.com/track?code={PROJECT_CODE}&country={CC}&sup={SUP_CODE}&uid={SUP_RID}
-  app.get("/track", async (req: Request, res: Response) => {
+  // OR https://router.domain.com/t/{PROJECT_CODE}?country={CC}&sup={SUP_CODE}&uid={SUP_RID}
+  // sup and uid are OPTIONAL — links work with or without a supplier
+  const handleTrackingRequest = async (req: Request, res: Response, codeFromPath?: string) => {
     const { code, country, sup, uid } = req.query;
+    const projectCode = (codeFromPath || code) as string;
+    const countryCode = country as string;
 
-    if (!code || !country || !sup || !uid) {
-      return res.status(400).send("Missing tracking parameters (code, country, sup, uid)");
+    // Only code and country are strictly required — sup and uid are optional for direct links
+    if (!projectCode || !countryCode) {
+      return res.status(400).send(`Missing tracking parameters. Need: code, country. Got: code=${projectCode}, country=${countryCode}`);
     }
 
-    const projectCode = code as string;
-    const countryCode = country as string;
-    const supplierCode = sup as string;
-    const supplierRid = uid as string;
+    const supplierCode = (sup as string) || "DIRECT";  // default to 'DIRECT' if no supplier
+    const supplierRid = (uid as string) || `DIR-${randomUUID().split('-')[0]}`; // generated UID if none provided
 
     try {
-      // 1. Validate Project and Supplier
+      // 1. Validate Project
       const project = await storage.getProjectByCode(projectCode);
       if (!project || project.status !== 'active') return res.status(404).send("Project not found or inactive");
 
-      const supplier = await storage.getSupplierByCode(supplierCode);
-      if (!supplier) return res.status(404).send("Supplier not found");
+      // 2. Validate Supplier ONLY if sup param was provided
+      if (sup) {
+        const supplier = await storage.getSupplierByCode(supplierCode);
+        if (!supplier) return res.status(404).send("Supplier not found");
+      }
 
-      // 2. Validate Country Survey
+      // 3. Validate Country Survey
       const countrySurvey = await storage.getCountrySurveyByCode(projectCode, countryCode);
       if (!countrySurvey || countrySurvey.status !== 'active') return res.status(404).send("Survey not found for this country");
 
-      // 3. Check for Duplicates
+      // 4. Check for Duplicates (by project + supplier_rid only)
       const isDuplicate = await storage.checkDuplicateRespondent(projectCode, supplierCode, supplierRid);
-      const currentTimeUnix = Math.floor(Date.now() / 1000).toString();
-      const ip = (req.headers["x-forwarded-for"] as string) || req.ip || "unknown";
+      const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0] || req.ip || "unknown";
 
       if (isDuplicate) {
-        // Log activity and terminate
-        const oiSession = randomUUID();
+        const oiSessionForLog = randomUUID();
         await storage.createActivityLog({
-          oiSession,
+          oiSession: oiSessionForLog,
+          projectCode,
           eventType: 'duplicate_entry',
           meta: { details: `Duplicate RID detected: ${supplierRid} for ${supplierCode} on ${projectCode}` } as any
         } as any);
 
-        // Redirect to new duplicate landing page with params
         const params = new URLSearchParams({
           pid: projectCode,
           uid: supplierRid,
-          ip: ip,
-          start: currentTimeUnix,
-          end: currentTimeUnix,
-          loi: "0",
-          status: "Duplicate",
-          country: countryCode
         });
         return res.redirect(`/pages/duplicate?${params.toString()}`);
       }
 
-      // 4. Generate Client RID (Atomic)
-      const clientRid = await storage.generateClientRID(projectCode);
+      // 5. Generate Client RID (Atomic)
+      let clientRid: string;
+      try {
+        clientRid = await storage.generateClientRID(projectCode);
+      } catch (ridErr: any) {
+        console.error("RID generation error:", ridErr);
+        // Fallback using timestamp
+        const prefix = project.ridPrefix || "OPI";
+        const cc = project.ridCountryCode || "XX";
+        clientRid = `${prefix}${cc}${Date.now().toString().slice(-6)}`;
+      }
 
-      // 5. Create Respondent Session
+      if (!clientRid || clientRid.trim() === '') {
+        console.error("RID generation returned empty string for project:", projectCode);
+        return res.redirect(`/pages/terminate?reason=rid_failed`);
+      }
+
+      console.log(`Track: supplierRid=${supplierRid}, clientRid=${clientRid}, project=${projectCode}`);
+
+      // 6. Create Respondent Session
       const oiSession = randomUUID();
       
       // S2S Generation
-      let s2sToken = null;
-      const s2sConfig = await db.query.projectS2sConfig.findFirst({
-        where: eq(projectS2sConfig.projectCode, projectCode)
-      });
+      let s2sToken: string | null = null;
+      const s2sConfig = await storage.getS2sConfig(projectCode);
       
       if (s2sConfig && s2sConfig.requireS2S) {
         s2sToken = generateS2SToken(oiSession, s2sConfig.s2sSecret);
       }
 
+      // 7. Build survey URL — inject clientRid using multiple placeholder formats
+      let redirectUrl = countrySurvey.surveyUrl
+        .replaceAll("{RID}", clientRid)
+        .replaceAll("[RID]", clientRid)
+        .replaceAll("{rid}", clientRid)
+        .replaceAll("{uid}", clientRid)
+        .replaceAll("[UID]", clientRid)
+        .replaceAll("{oi_session}", oiSession);
+
+      if (s2sToken) {
+        const separator = redirectUrl.includes('?') ? '&' : '?';
+        redirectUrl += `${separator}s2s_token=${s2sToken}`;
+      }
+
+      // Append oi_session if not already in URL
+      if (!redirectUrl.includes("oi_session=")) {
+        const separator = redirectUrl.includes('?') ? '&' : '?';
+        redirectUrl += `${separator}oi_session=${oiSession}`;
+      }
+
+      // 8. Save respondent with survey_url stored server-side
       await storage.createRespondent({
         oiSession,
         projectCode,
@@ -462,34 +510,29 @@ export async function registerRoutes(
         ipAddress: ip,
         userAgent: req.headers["user-agent"] || "unknown",
         status: 'started',
-        s2sToken: s2sToken || undefined
+        s2sToken: s2sToken || undefined,
+        surveyUrl: redirectUrl // Store the final final URL (column added to DB)
       } as any);
 
-      // 6. Log Entry
+      // 9. Log Entry
       await storage.createActivityLog({
         oiSession,
+        projectCode,
         eventType: 'entry',
-        meta: { details: `Respondent started. Redirecting to client survey.` } as any
+        meta: { details: `Respondent started. sup=${supplierCode}, clientRid=${clientRid}` } as any
       } as any);
 
-      // 7. Redirect to Client Survey URL
-      // Replace placeholders in client URL
-      let redirectUrl = countrySurvey.surveyUrl
-        .replace("{RID}", clientRid)
-        .replace("{oi_session}", oiSession);
-
-      if (s2sToken) {
-        const separator = redirectUrl.includes('?') ? '&' : '?';
-        redirectUrl += `${separator}s2s_token=${s2sToken}`;
-      }
-
+      // 10. Redirect to Client Survey URL
       return res.redirect(redirectUrl);
 
     } catch (err: any) {
       console.error("Tracking Error:", err);
       return res.status(500).send("Internal Server Error during tracking");
     }
-  });
+  };
+
+  app.get("/track", (req, res) => handleTrackingRequest(req, res));
+  app.get("/t/:code", (req, res) => handleTrackingRequest(req, res, req.params.code));
 
   // ====== CALLBACK ENDPOINTS ======
   const handleCallback = async (req: Request, res: Response, status: string) => {
@@ -547,34 +590,86 @@ export async function registerRoutes(
     const endTime = Math.floor(Date.now() / 1000);
     const loi = Math.round((endTime - startTime) / 60);
 
-    // Construct common params for our internal landing page
-    const internalParams = new URLSearchParams({
+    // Construct common params for our internal landing page - MINIMAL PARAMS
+    const internalPathMap: Record<string, string> = {
+      'complete': '/pages/complete',
+      'terminate': '/pages/terminate',
+      'quotafull': '/pages/quotafull',
+      'security-terminate': '/pages/security',
+      'fraud': '/pages/security'
+    };
+
+    const internalPath = internalPathMap[finalStatus] || '/pages/terminate';
+    const redirectParams = new URLSearchParams({
       pid: respondent.projectCode || "",
       uid: respondent.supplierRid || "",
-      ip: respondent.ipAddress || "unknown",
-      start: startTime.toString(),
-      end: endTime.toString(),
-      loi: loi.toString(),
-      status: status,
-      country: respondent.countryCode || ""
+      session: respondent.oiSession
     });
 
-    // Map status to our new paths
-    let internalPath = "/pages/terminate";
-    if (finalStatus === 'complete') internalPath = "/pages/complete";
-    if (finalStatus === 'quotafull') internalPath = "/pages/quotafull";
-    if (finalStatus === 'security-terminate' || finalStatus === 'fraud') internalPath = "/pages/security";
+    // 7. Determine Final Destination (Supplier Redirect vs Landing Page)
+    let finalRedirectUrl = `${internalPath}?${redirectParams.toString()}`;
 
-    internalParams.set("status", finalStatus);
+    // If it's a supplier respondent, try to find their specific redirect URL
+    if (respondent.supplierCode && respondent.supplierCode !== 'direct') {
+      const supplier = await storage.getSupplierByCode(respondent.supplierCode);
+      if (supplier) {
+        let supRedirect: string | null = null;
+        if (finalStatus === 'complete') supRedirect = supplier.completeUrl ?? null;
+        else if (finalStatus === 'terminate') supRedirect = supplier.terminateUrl ?? null;
+        else if (finalStatus === 'quotafull') supRedirect = supplier.quotafullUrl ?? null;
+        else if (finalStatus === 'security-terminate' || finalStatus === 'fraud') supRedirect = supplier.securityUrl ?? null;
 
-    // Re-route internally to our display page
-    return res.redirect(`${internalPath}?${internalParams.toString()}`);
+        if (supRedirect && supRedirect.trim() !== '') {
+          // Replace {RID} or [RID] with the ORIGINAL supplier UID
+          finalRedirectUrl = supRedirect
+            .replace("{RID}", respondent.supplierRid)
+            .replace("[RID]", respondent.supplierRid)
+            .replace("{rid}", respondent.supplierRid)
+            .replace("{uid}", respondent.supplierRid)
+            .replace("[UID]", respondent.supplierRid);
+          
+          console.log(`Callback: Redirecting to supplier URL: ${finalRedirectUrl}`);
+        }
+      }
+    }
+
+    return res.redirect(finalRedirectUrl);
   };
 
   app.get("/complete", (req, res) => handleCallback(req, res, "complete"));
   app.get("/terminate", (req, res) => handleCallback(req, res, "terminate"));
   app.get("/quotafull", (req, res) => handleCallback(req, res, "quotafull"));
   app.get("/security-terminate", (req, res) => handleCallback(req, res, "security-terminate"));
+
+  // API to fetch respondent info for landing pages (without heavy URL params)
+  app.get("/api/respondent-stats/:oiSession", async (req: Request, res: Response) => {
+    const oiSession = req.params.oiSession as string;
+    if (!oiSession) {
+      return res.status(400).json({ message: "Missing session ID" });
+    }
+    try {
+      const respondent = await storage.getRespondentBySession(oiSession);
+      if (!respondent) return res.status(404).json({ message: "Session not found" });
+
+      const startTime = respondent.startedAt ? Math.floor(respondent.startedAt.getTime() / 1000) : null;
+      const endTime = respondent.completedAt ? Math.floor(respondent.completedAt.getTime() / 1000) : Math.floor(Date.now() / 1000);
+      const loi = startTime ? Math.round((endTime - startTime) / 60) : 0;
+
+      return res.json({
+        projectCode: respondent.projectCode,
+        supplierCode: respondent.supplierCode,
+        supplierRid: respondent.supplierRid,
+        status: respondent.status,
+        loi: loi,
+        startTime,
+        endTime,
+        ip: respondent.ipAddress,
+        country: respondent.countryCode
+      });
+    } catch (err) {
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   // S2S Callback Endpoint
   app.post("/api/s2s/callback", async (req: Request, res: Response) => {

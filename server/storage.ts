@@ -157,7 +157,8 @@ const mapRespondent = (data: any): Respondent => ({
   startedAt: data.started_at ? new Date(data.started_at) : undefined,
   completedAt: data.completed_at ? new Date(data.completed_at) : undefined,
   ipAddress: data.ip_address,
-  userAgent: data.user_agent
+  userAgent: data.user_agent,
+  surveyUrl: data.survey_url
 });
 
 export class DatabaseStorage implements IStorage {
@@ -352,7 +353,8 @@ export class DatabaseStorage implements IStorage {
       fraud_score: respondent.fraudScore,
       s2s_token: respondent.s2sToken,
       ip_address: respondent.ipAddress,
-      user_agent: respondent.userAgent
+      user_agent: respondent.userAgent,
+      survey_url: (respondent as any).surveyUrl || null
     };
     const { data } = await insforge.database.from("respondents").insert([dbRespondent]).select().single();
     if (!data) throw new Error("Failed to create respondent");
