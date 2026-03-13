@@ -686,17 +686,23 @@ export async function registerRoutes(
     }
 
     // 8. Replace Placeholders in Final URL
-    if (finalRedirectUrl.includes('{') || finalRedirectUrl.includes('[')) {
+    if (finalRedirectUrl.includes('{') || finalRedirectUrl.includes('[') || finalRedirectUrl.includes('{{')) {
       finalRedirectUrl = finalRedirectUrl
+        .replaceAll("{{RID}}", sanitizedRid)
+        .replaceAll("{{rid}}", sanitizedRid)
+        .replaceAll("{{uid}}", sanitizedRid)
+        .replaceAll("{{UID}}", sanitizedRid)
         .replaceAll("{RID}", sanitizedRid)
-        .replaceAll("[RID}", sanitizedRid) // Fixing a potential bracket typo if I saw one, but usually it's [RID]
         .replaceAll("[RID]", sanitizedRid)
         .replaceAll("{rid}", sanitizedRid)
         .replaceAll("{uid}", sanitizedRid)
         .replaceAll("[UID]", sanitizedRid)
+        .replaceAll("{{PID}}", respondent.projectCode)
+        .replaceAll("{{pid}}", respondent.projectCode)
         .replaceAll("{PID}", respondent.projectCode)
         .replaceAll("[PID]", respondent.projectCode)
         .replaceAll("{pid}", respondent.projectCode)
+        .replaceAll("{{oi_session}}", respondent.oiSession)
         .replaceAll("{oi_session}", respondent.oiSession);
     }
 
