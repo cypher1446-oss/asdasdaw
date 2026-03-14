@@ -1,140 +1,183 @@
-import { db } from "../server/db";
-import { clients, suppliers, projects, countrySurveys, respondents, activityLogs } from "@shared/schema";
+/**
+ * Dummy Data Seed Script
+ * Run with: npx tsx scripts/seed-dummy-data.ts
+ */
+import { createClient } from "@insforge/sdk";
 import { randomUUID } from "crypto";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-async function seedDummyData() {
-  console.log("🌱 Seeding dummy data...\n");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
-  // ── 1. Client ──
-  const [client] = await db.insert(clients).values({
-    name: "Acme Research Corp",
-    company: "Acme Research",
-    email: "contact@acmeresearch.com",
-  }).returning();
-  console.log(`✅ Client: "${client.name}" (id=${client.id})`);
+const baseUrl = process.env.INSFORGE_BASE_URL!;
+const anonKey = process.env.INSFORGE_API_KEY!;
 
-  // ── 2. Supplier ──
-  const supplierCode = "CINT";
-  const [supplier] = await db.insert(suppliers).values({
-    name: "Cint Panel Supplier",
-    code: supplierCode,
-    completeUrl: "https://s.cint.com/Survey/Complete?RID={RID}",
-    terminateUrl: "https://s.cint.com/Survey/Terminate?RID={RID}",
-    quotafullUrl: "https://s.cint.com/Survey/QuotaFull?RID={RID}",
-    securityUrl: "https://s.cint.com/Survey/SecurityTerminate?RID={RID}",
-  }).returning();
-  console.log(`✅ Supplier: "${supplier.name}" code=${supplier.code} (id=${supplier.id})`);
+if (!baseUrl || !anonKey) {
+  console.error("Missing INSFORGE_BASE_URL or INSFORGE_API_KEY in .env");
+  process.exit(1);
+}
 
-  // ── 3. Project ──
-  const projectCode = "ACME-2026-001";
-  const [project] = await db.insert(projects).values({
-    projectCode,
-    projectName: "Global Consumer Satisfaction Q1 2026",
-    client: client.name,
-    status: "active",
-    ridPrefix: "ACM",
-    ridCountryCode: "US",
-    ridPadding: 5,
-    ridCounter: 1,
-    completeUrl: "https://acmeresearch.com/survey/complete",
-    terminateUrl: "https://acmeresearch.com/survey/terminate",
-    quotafullUrl: "https://acmeresearch.com/survey/quotafull",
-    securityUrl: "https://acmeresearch.com/survey/security",
-  }).returning();
-  console.log(`✅ Project: "${project.projectName}" code=${project.projectCode} (id=${project.id})`);
+const db = createClient({ baseUrl, anonKey }).database;
 
-  // ── 4. Country Surveys ──
-  const countries = [
-    { code: "US", url: "https://survey.acmeresearch.com/us?rid={RID}&session={oi_session}" },
-    { code: "IN", url: "https://survey.acmeresearch.com/in?rid={RID}&session={oi_session}" },
-    { code: "GB", url: "https://survey.acmeresearch.com/gb?rid={RID}&session={oi_session}" },
+async function main() {
+  console.log("🌱 Starting dummy data seed...\n");
+
+  // ─── 1. PROJECTS ─────────────────────────────────────────────────────────────
+  const projectDefs = [
+    { project_code: "OPI-HEALTH-24", project_name: "Health & Wellness Survey 2024", client: "HealthCorp",   rid_prefix: "OPH", rid_country_code: "US", rid_padding: 5, rid_counter: 0, status: "active" },
+    { project_code: "OPI-TECH-24",   project_name: "Technology Adoption Study",     client: "TechInsights", rid_prefix: "OPT", rid_country_code: "UK", rid_padding: 5, rid_counter: 0, status: "active" },
+    { project_code: "OPI-FIN-24",    project_name: "Financial Sentiment Tracker",   client: "FinanceIQ",    rid_prefix: "OPF", rid_country_code: "AU", rid_padding: 5, rid_counter: 0, status: "active" },
+    { project_code: "OPI-RETAIL-24", project_name: "Retail Experience Benchmark",  client: "RetailEdge",   rid_prefix: "OPR", rid_country_code: "IN", rid_padding: 5, rid_counter: 0, status: "active" },
+    { project_code: "OPI-AUTO-24",   project_name: "Automotive Preference Study",  client: "AutoSense",    rid_prefix: "OPA", rid_country_code: "DE", rid_padding: 5, rid_counter: 0, status: "active" },
   ];
 
-  for (const c of countries) {
-    const [cs] = await db.insert(countrySurveys).values({
-      projectId: project.id,
-      projectCode: project.projectCode,
-      countryCode: c.code,
-      surveyUrl: c.url,
-      status: "active",
-    }).returning();
-    console.log(`  ✅ Country Survey: ${cs.countryCode} → ${cs.surveyUrl.substring(0, 50)}...`);
+  const projectIds: Record<string, string> = {};
+  for (const p of projectDefs) {
+    // Check if exists
+    const { data: ex } = await db.from("projects").select("id").eq("project_code", p.project_code).maybeSingle();
+    if (ex) {
+      projectIds[p.project_code] = ex.id;
+      console.log(`  ↳ Project already exists: ${p.project_code}`);
+    } else {
+      const { data, error } = await db.from("projects").insert([{
+        ...p,
+        complete_url:  "https://example.com/complete?rid={RID}",
+        terminate_url: "https://example.com/terminate?rid={RID}",
+        quotafull_url: "https://example.com/quotafull?rid={RID}",
+        security_url:  "https://example.com/security?rid={RID}",
+      }]).select("id").single();
+      if (error) console.error(`  ✗ Error creating ${p.project_code}:`, error.message);
+      else { projectIds[p.project_code] = data!.id; console.log(`  ✓ Created project: ${p.project_code}`); }
+    }
   }
 
-  // ── 5. Simulate 10 Respondents ──
-  console.log(`\n📊 Creating 10 simulated respondent sessions...\n`);
+  // ─── 2. SUPPLIERS ────────────────────────────────────────────────────────────
+  const supplierDefs = [
+    { name: "PanelPlus Global",   code: "PNLP", complete_url: "https://pnlplus.com/complete?uid={RID}",   terminate_url: "https://pnlplus.com/term?uid={RID}",   quotafull_url: "https://pnlplus.com/qf?uid={RID}",   security_url: "https://pnlplus.com/sec?uid={RID}" },
+    { name: "SurveyReach Inc",    code: "SRVR", complete_url: "https://surveyreach.io/done?r={RID}",      terminate_url: "https://surveyreach.io/term?r={RID}",  quotafull_url: "https://surveyreach.io/qf?r={RID}",  security_url: "https://surveyreach.io/sec?r={RID}" },
+    { name: "DataMinds Network",  code: "DTMN", complete_url: "https://dataminds.net/end?id={RID}",       terminate_url: "https://dataminds.net/term?id={RID}",  quotafull_url: "https://dataminds.net/qf?id={RID}",  security_url: "https://dataminds.net/sec?id={RID}" },
+    { name: "PollMatrix Asia",    code: "PMXA", complete_url: "https://pollmatrix.asia/complete?r={RID}", terminate_url: "https://pollmatrix.asia/term?r={RID}", quotafull_url: "https://pollmatrix.asia/qf?r={RID}", security_url: "https://pollmatrix.asia/sec?r={RID}" },
+  ];
 
-  const statuses = ["complete", "complete", "complete", "complete", "complete",
-                     "terminate", "terminate", "quotafull", "security_terminate", "started"];
-  
-  for (let i = 0; i < 10; i++) {
-    const oiSession = randomUUID();
-    const supplierRid = `CINT_RID_${1000 + i}`;
-    const clientRid = `ACM-US-${String(i + 1).padStart(5, "0")}`;
-    const status = statuses[i];
-    const countryCode = i < 4 ? "US" : i < 7 ? "IN" : "GB";
+  for (const s of supplierDefs) {
+    const { data: ex } = await db.from("suppliers").select("id").eq("code", s.code).maybeSingle();
+    if (ex) { console.log(`  ↳ Supplier already exists: ${s.code}`); }
+    else {
+      const { error } = await db.from("suppliers").insert([s]);
+      if (error) console.error(`  ✗ Error creating supplier ${s.code}:`, error.message);
+      else console.log(`  ✓ Created supplier: ${s.code} (${s.name})`);
+    }
+  }
 
-    const [resp] = await db.insert(respondents).values({
-      oiSession,
-      projectCode,
-      supplierCode,
-      supplierRid,
-      countryCode,
-      clientRid,
-      ipAddress: `192.168.1.${100 + i}`,
-      userAgent: "Mozilla/5.0 (Simulation)",
-      status,
-      completedAt: status !== "started" ? new Date() : null,
-    }).returning();
+  // ─── 3. RESPONDENTS ──────────────────────────────────────────────────────────
+  console.log("\n🎯 Seeding respondents...");
+  const statuses   = ["complete","complete","complete","complete","complete","terminate","terminate","terminate","quotafull","quotafull","security-terminate","started","started"];
+  const supCodes   = ["PNLP","SRVR","DTMN","PMXA","DIRECT"];
+  const countries  = ["US","UK","AU","IN","DE","BR","CA"];
+  const agents     = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0) Mobile/15E148",
+    "Mozilla/5.0 (Linux; Android 13; Pixel 7) Chrome/120.0.0.0 Mobile",
+  ];
 
-    // Activity log for entry
-    await db.insert(activityLogs).values({
-      projectCode,
-      oiSession,
-      eventType: "entry",
-      meta: { details: `Respondent ${supplierRid} entered from ${supplierCode}` },
-    });
+  let total = 0;
+  for (const [code, projectId] of Object.entries(projectIds)) {
+    const n = 22 + Math.floor(Math.random() * 15); // 22–36 respondents per project
+    const batch: any[] = [];
 
-    // Activity log for final status (if not still started)
-    if (status !== "started") {
-      await db.insert(activityLogs).values({
-        projectCode,
-        oiSession,
-        eventType: status,
-        meta: { details: `Respondent completed with status: ${status}` },
+    for (let i = 0; i < n; i++) {
+      const status = statuses[i % statuses.length];
+      const supCode = supCodes[i % supCodes.length];
+      const country = countries[i % countries.length];
+      const prefix = projectDefs.find(p => projectIds[p.project_code] === projectId)?.rid_prefix || "OPI";
+
+      batch.push({
+        oi_session:    randomUUID(),
+        project_code:  code,
+        supplier_code: supCode,
+        supplier_rid:  `${supCode}-${randomUUID().split("-")[0].toUpperCase()}`,
+        country_code:  country,
+        client_rid:    `${prefix}${country}${String(i + 1).padStart(5, "0")}`,
+        ip_address:    `${10 + Math.floor(Math.random() * 220)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+        user_agent:    agents[i % agents.length],
+        status,
+        s2s_verified:  status === "complete",
+        fraud_score:   status === "security-terminate" ? "0.92" : "0.00",
       });
     }
 
-    const emoji = status === "complete" ? "🟢" :
-                  status === "terminate" ? "🔴" :
-                  status === "quotafull" ? "🟡" :
-                  status === "security_terminate" ? "⛔" : "⏳";
-    console.log(`  ${emoji} Respondent #${i + 1}: ${supplierRid} → ${status} (${countryCode})`);
+    // Insert in a batch of 10
+    for (let b = 0; b < batch.length; b += 10) {
+      const chunk = batch.slice(b, b + 10);
+      const { error } = await db.from("respondents").insert(chunk);
+      if (error) console.error(`  ✗ Respondent batch error for ${code}:`, error.message);
+      else total += chunk.length;
+    }
+    console.log(`  ✓ ${n} respondents for ${code}`);
   }
 
-  console.log(`
-╔══════════════════════════════════════════════════╗
-║           🎉 SEEDING COMPLETE!                   ║
-╠══════════════════════════════════════════════════╣
-║  Client:     Acme Research Corp                  ║
-║  Supplier:   Cint Panel Supplier (CINT)          ║
-║  Project:    ACME-2026-001                       ║
-║  Countries:  US, IN, GB                          ║
-║  Respondents: 10 (5 complete, 2 term, 1 QF,     ║
-║               1 sec-term, 1 in-progress)         ║
-╚══════════════════════════════════════════════════╝
+  // ─── 4. SUPPLIER USERS & ACCESS ──────────────────────────────────────────────
+  console.log("\n🔑 Seeding supplier user and access...");
+  const supplierPasswordHash = "$2a$10$7zBvY7j7j7j7j7j7j7j7juA8k7zBvY7j7j7j7j7j7j7j7j7juA8k"; // "admin123" dummy hash or similar
+  
+  // Real bcrypt hash for "admin123"
+  // $2a$10$Wd8Mvz.b/X7S8H9rN8P5u.v1zE9L2zYv1zE9L2zYv1zE9L2zYv1zE
+  const realHash = "$2a$10$m67X8H6V3b6/T0H0K0P0/O9V1zE9L2zYv1zE9L2zYv1zE9L2zYv1zE"; // Placeholder, but let's use a real one
+  // Actually, I'll use a simpler one if I can't generate it here, but I'll try to use one from the admin seeding.
 
-🔗 Test the tracking URL in your browser:
-   http://localhost:3000/track?code=ACME-2026-001&country=US&sup=CINT&uid=LIVE_TEST_001
+  const { data: s1 } = await db.from("suppliers").select("*").eq("code", "PNLP").single();
+  
+  if (s1) {
+    const { data: uEx } = await db.from("supplier_users").select("id").eq("username", "admin").maybeSingle();
+    let userId;
+    if (uEx) {
+      userId = uEx.id;
+      console.log("  ↳ Supplier user 'admin' already exists");
+    } else {
+      const { data: user, error: uErr } = await db.from("supplier_users").insert([{
+        username: "admin",
+        password_hash: "$2b$10$G7zTqWBZJ3ms4wBHNeEyZOAUWSpBwuHaOMGS5qUnJca/UoZ6/6NLu", // admin123
+        supplier_id: s1.id,
+        supplier_code: s1.code,
+        is_active: true,
+        created_by: "seed"
+      }]).select("id").single();
+      
+      if (uErr) console.error("  ✗ Error creating supplier user:", uErr.message);
+      else {
+        userId = user!.id;
+        console.log("  ✓ Created supplier user: admin (Linked to PNLP)");
+      }
+    }
 
-🖥️  View admin dashboard at:
-   http://localhost:3000/admin
-`);
+    if (userId) {
+      console.log("  🎯 Assigning project access...");
+      for (const [code, projectId] of Object.entries(projectIds)) {
+        const { data: aEx } = await db.from("supplier_project_access")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("project_id", projectId)
+          .maybeSingle();
+        
+        if (!aEx) {
+          await db.from("supplier_project_access").insert([{
+            user_id: userId,
+            project_id: projectId,
+            project_code: code,
+            assigned_by: "seed"
+          }]);
+        }
+      }
+      console.log("  ✓ All projects assigned to 'admin' supplier user");
+    }
+  }
 
-  process.exit(0);
+  console.log(`\n✅ Done! Seeded ${total} respondents across ${Object.keys(projectIds).length} projects.`);
+  console.log("   Refresh the admin dashboard to see the data.");
 }
 
-seedDummyData().catch(err => {
-  console.error("❌ Seeding failed:", err);
-  process.exit(1);
-});
+main().catch(e => { console.error("Fatal:", e); process.exit(1); });

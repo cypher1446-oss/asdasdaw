@@ -18,9 +18,11 @@ export function setupAuth(app: Express) {
 
   console.log("setupAuth: process.env.DATABASE_URL is", process.env.DATABASE_URL ? "defined" : "undefined");
 
-  let sessionStore;
+  let sessionStore: any = undefined; // undefined = express-session MemoryStore (dev only)
+  const dbUrl = process.env.DATABASE_URL;
+  const isRealDb = dbUrl && !dbUrl.includes("placeholder") && !dbUrl.includes("localhost:5432");
   try {
-    if (process.env.DATABASE_URL) {
+    if (isRealDb) {
       console.log("setupAuth: Creating PgSession store...");
       sessionStore = new PgSession({
         pool,
@@ -30,10 +32,11 @@ export function setupAuth(app: Express) {
         errorLog: console.error
       });
     } else {
-      console.warn("setupAuth: No DATABASE_URL found. Falling back to MemoryStore.");
+      console.warn("setupAuth: No real DATABASE_URL. Using MemoryStore (dev mode).");
     }
   } catch (err) {
-    console.error("setupAuth: CRITICAL ERROR creating session store:", err);
+    console.error("setupAuth: Error creating session store, falling back to MemoryStore:", err);
+    sessionStore = undefined;
   }
 
   app.use(

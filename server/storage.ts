@@ -452,6 +452,23 @@ export class DatabaseStorage implements IStorage {
     return (data || []).map(mapRespondent);
   }
 
+  async getEnrichedRespondents(limit = 100): Promise<any[]> {
+    const { data: respondents } = await insforge.database.from("respondents")
+      .select("*")
+      .order("started_at", { ascending: false })
+      .limit(limit);
+    
+    if (!respondents) return [];
+
+    const { data: suppliers } = await insforge.database.from("suppliers").select("id, name, code");
+    const supplierMap = new Map((suppliers || []).map(s => [s.code, s.name]));
+
+    return respondents.map(r => ({
+      ...mapRespondent(r),
+      supplierName: r.supplier_code ? supplierMap.get(r.supplier_code) || "Direct Traffic" : "Direct Traffic"
+    }));
+  }
+
   async getRespondentsByProject(projectCode: string): Promise<Respondent[]> {
     const { data } = await insforge.database.from("respondents")
       .select("*")
@@ -831,6 +848,10 @@ export class DatabaseStorage implements IStorage {
       };
     }
 
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString();
+
     const { count: totalProjects } = await insforge.database.from("supplier_project_access")
       .select("*", { count: 'exact', head: true })
       .eq("user_id", userId);
@@ -838,31 +859,36 @@ export class DatabaseStorage implements IStorage {
     const { count: totalRespondents } = await insforge.database.from("respondents")
       .select("*", { count: 'exact', head: true })
       .eq("supplier_code", supplierCode)
-      .in("project_code", projectCodes);
+      .in("project_code", projectCodes)
+      .gte("started_at", todayStr);
 
     const { count: completes } = await insforge.database.from("respondents")
       .select("*", { count: 'exact', head: true })
       .eq("supplier_code", supplierCode)
       .in("project_code", projectCodes)
-      .eq("status", "complete");
+      .eq("status", "complete")
+      .gte("started_at", todayStr);
 
     const { count: terminates } = await insforge.database.from("respondents")
       .select("*", { count: 'exact', head: true })
       .eq("supplier_code", supplierCode)
       .in("project_code", projectCodes)
-      .eq("status", "terminate");
+      .eq("status", "terminate")
+      .gte("started_at", todayStr);
 
     const { count: quotafulls } = await insforge.database.from("respondents")
       .select("*", { count: 'exact', head: true })
       .eq("supplier_code", supplierCode)
       .in("project_code", projectCodes)
-      .eq("status", "quotafull");
+      .eq("status", "quotafull")
+      .gte("started_at", todayStr);
 
     const { count: securityTerminates } = await insforge.database.from("respondents")
       .select("*", { count: 'exact', head: true })
       .eq("supplier_code", supplierCode)
       .in("project_code", projectCodes)
-      .eq("status", "security-terminate");
+      .eq("status", "security-terminate")
+      .gte("started_at", todayStr);
 
     return {
       totalProjects: totalProjects || 0,

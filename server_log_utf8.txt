@@ -1,0 +1,32 @@
+﻿DATABASE_URL Protocol Check: postgresql://pl...
+[dotenv@17.3.1] injecting env (0) from .env -- tip: ΓÜÖ∩╕Å  load multiple .env files with { path: ['.env.local', '.env'] }
+InsForge Client Initialized: {
+  baseUrl: 'https://cpim43si.us-west.insforge.app',
+  hasDatabase: true,
+  hasAuth: true,
+  hasStorage: true
+}
+8:24:24 AM [express] Verifying environment variables...
+8:24:24 AM [express] Initializing routes...
+setupAuth: process.env.DATABASE_URL is defined
+setupAuth: Creating PgSession store...
+8:24:24 AM [express] Routes registered.
+node.exe : ReferenceError: __dirname is not defined in ES 
+module scope
+At line:1 char:1
++ & "E:\Program Files\nodejs/node.exe" "E:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo          : NotSpecified: (ReferenceError:.. 
+   .ES module scope:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+    at <anonymous> (E:\Users\shiva\Downloads\Opinion-Routing-Pl
+atform\vite.config.ts:13:25)
+    at ModuleJob.run 
+(node:internal/modules/esm/module_job:430:25)
+    at async onImport.tracePromise.__proto__ 
+(node:internal/modules/esm/loader:661:26)
+    at async <anonymous> (E:\Users\shiva\Downloads\Opinion-Rout
+ing-Platform\server\index.ts:98:29)

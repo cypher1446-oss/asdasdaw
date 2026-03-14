@@ -103,9 +103,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/admin/responses", requireAdmin, async (_req: Request, res: Response) => {
-    // This is a legacy alias used by some test scripts
-    const respondents = await storage.getRespondents();
-    return res.json(respondents);
+    const enriched = await storage.getEnrichedRespondents(50);
+    return res.json(enriched);
   });
 
   app.get("/api/admin/respondents", requireAdmin, async (_req: Request, res: Response) => {
@@ -546,6 +545,19 @@ export async function registerRoutes(
     return res.json(projects);
   });
 
+  app.get("/api/supplier/projects", requireSupplier, async (req: Request, res: Response) => {
+    try {
+      const user = await storage.getSupplierUserById(req.session.supplierUserId!);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      
+      const projects = await storage.getAssignedProjects(user.id);
+      return res.json(projects);
+    } catch (error) {
+      console.error("Projects error:", error);
+      res.status(500).json({ message: "Failed to fetch projects" });
+    }
+  });
+
   app.get("/api/supplier/responses", requireSupplier, async (req: Request, res: Response) => {
     const user = await storage.getSupplierUserById(req.session.supplierUserId!);
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -960,6 +972,117 @@ export async function registerRoutes(
       .orderBy(desc(activityLogs.createdAt))
       .limit(50);
     return res.json(alerts);
+  });
+
+  // ====== DUMMY DATA SEED ======
+  app.post("/api/admin/seed-dummy-data", requireAdmin, async (_req: Request, res: Response) => {
+    try {
+      const results: string[] = [];
+
+      // --- PROJECTS ---
+      const projectDefs = [
+        { projectCode: "OPI-HEALTH-24", projectName: "Health & Wellness Survey 2024", client: "HealthCorp", ridPrefix: "OPH", ridCountryCode: "US", ridPadding: 5 },
+        { projectCode: "OPI-TECH-24", projectName: "Technology Adoption Study", client: "TechInsights", ridPrefix: "OPT", ridCountryCode: "UK", ridPadding: 5 },
+        { projectCode: "OPI-FIN-24", projectName: "Financial Sentiment Tracker", client: "FinanceIQ", ridPrefix: "OPF", ridCountryCode: "AU", ridPadding: 5 },
+        { projectCode: "OPI-RETAIL-24", projectName: "Retail Experience Benchmark", client: "RetailEdge", ridPrefix: "OPR", ridCountryCode: "IN", ridPadding: 5 },
+        { projectCode: "OPI-AUTO-24", projectName: "Automotive Preference Study", client: "AutoSense", ridPrefix: "OPA", ridCountryCode: "DE", ridPadding: 5 },
+      ];
+
+      const createdProjects: any[] = [];
+      for (const pd of projectDefs) {
+        try {
+          const existing = await storage.getProjectByCode(pd.projectCode);
+          if (!existing) {
+            const p = await storage.createProject({
+              ...pd,
+              status: "active",
+              ridCounter: 0,
+              completeUrl: "https://example.com/complete?rid={RID}",
+              terminateUrl: "https://example.com/terminate?rid={RID}",
+              quotafullUrl: "https://example.com/quotafull?rid={RID}",
+              securityUrl: "https://example.com/security?rid={RID}",
+            });
+            createdProjects.push(p);
+            results.push(`Created project: ${pd.projectCode}`);
+          } else {
+            createdProjects.push(existing);
+            results.push(`Skipped project (exists): ${pd.projectCode}`);
+          }
+        } catch (_) {}
+      }
+
+      // --- SUPPLIERS ---
+      const supplierDefs = [
+        { name: "PanelPlus Global", code: "PNLP", completeUrl: "https://pnlplus.com/complete?uid={RID}", terminateUrl: "https://pnlplus.com/term?uid={RID}", quotafullUrl: "https://pnlplus.com/qf?uid={RID}", securityUrl: "https://pnlplus.com/sec?uid={RID}" },
+        { name: "SurveyReach Inc", code: "SRVR", completeUrl: "https://surveyreach.io/done?r={RID}", terminateUrl: "https://surveyreach.io/term?r={RID}", quotafullUrl: "https://surveyreach.io/qf?r={RID}", securityUrl: "https://surveyreach.io/sec?r={RID}" },
+        { name: "DataMinds Network", code: "DTMN", completeUrl: "https://dataminds.net/end?id={RID}", terminateUrl: "https://dataminds.net/term?id={RID}", quotafullUrl: "https://dataminds.net/qf?id={RID}", securityUrl: "https://dataminds.net/sec?id={RID}" },
+      ];
+
+      for (const sd of supplierDefs) {
+        try {
+          const existing = await storage.getSupplierByCode(sd.code);
+          if (!existing) {
+            await storage.createSupplier({ ...sd, passwordHash: null } as any);
+            results.push(`Created supplier: ${sd.code}`);
+          } else {
+            results.push(`Skipped supplier (exists): ${sd.code}`);
+          }
+        } catch (_) {}
+      }
+
+      // --- RESPONDENTS ---
+      const statuses = [
+        "complete", "complete", "complete", "complete", "complete",
+        "terminate", "terminate", "terminate",
+        "quotafull", "quotafull",
+        "security-terminate",
+        "started", "started"
+      ];
+      const supplierCodes = ["PNLP", "SRVR", "DTMN", "DIRECT"];
+      const countries = ["US", "UK", "AU", "IN", "DE"];
+      const userAgents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15",
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0) Mobile/15E148",
+        "Mozilla/5.0 (Linux; Android 13; Pixel 7) Chrome/120.0.0.0 Mobile",
+      ];
+
+      let respondentCount = 0;
+      for (const project of createdProjects) {
+        const numRespondents = 18 + Math.floor(Math.random() * 12);
+        for (let i = 0; i < numRespondents; i++) {
+          try {
+            const oiSession = randomUUID();
+            const supplierCode = supplierCodes[i % supplierCodes.length];
+            const status = statuses[i % statuses.length];
+            const country = countries[i % countries.length];
+            const minutesAgo = Math.floor(Math.random() * 1440);
+
+            await storage.createRespondent({
+              oiSession,
+              projectCode: project.projectCode,
+              supplierCode,
+              supplierRid: `${supplierCode}-${randomUUID().split("-")[0].toUpperCase()}`,
+              countryCode: country,
+              clientRid: `${project.ridPrefix || "OPI"}${country}${String(i + 1).padStart(5, "0")}`,
+              ipAddress: `${Math.floor(Math.random() * 220) + 10}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
+              userAgent: userAgents[i % userAgents.length],
+              status,
+              s2sVerified: status === "complete",
+              fraudScore: status === "security-terminate" ? "0.92" : "0.0",
+            } as any);
+
+            respondentCount++;
+          } catch (_) {}
+        }
+      }
+      results.push(`Created ${respondentCount} respondents across ${createdProjects.length} projects`);
+
+      return res.json({ success: true, message: "Dummy data seeded!", details: results });
+    } catch (err: any) {
+      console.error("Seed error:", err);
+      return res.status(500).json({ error: err.message });
+    }
   });
 
   return createServer(app);

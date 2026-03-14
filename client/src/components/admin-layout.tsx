@@ -1,18 +1,40 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { WavyBackground } from "@/components/ui/wavy-background";
+import { PixelTrail } from "@/components/ui/pixel-trail";
+import { useScreenSize } from "@/components/hooks/use-screen-size";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
+}
+
+// Pixel trail overlay — sits at z-0, above waves but below UI content
+function PixelTrailOverlay() {
+  const screenSize = useScreenSize();
+  const pixelSize = screenSize.lessThan("md") ? 32 : 56;
+
+  return (
+    <div className="fixed inset-0 z-0 pointer-events-none">
+      <PixelTrail
+        pixelSize={pixelSize}
+        fadeDuration={600}
+        delay={0}
+        pixelClassName="rounded-full bg-violet-400/60"
+      />
+    </div>
+  );
 }
 
 export function AdminLayout({ children }: AdminLayoutProps) {
   const { user } = useAuth();
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50 selection:bg-primary selection:text-white font-sans overflow-hidden relative text-slate-900 transition-colors duration-500">
+    <div className="flex min-h-screen w-full selection:bg-primary selection:text-white font-sans overflow-hidden relative text-slate-900 transition-colors duration-500">
       {/* Animated Wavy Background — fixed, behind everything */}
       <WavyBackground />
+
+      {/* Interactive Pixel Trail — follows the mouse */}
+      <PixelTrailOverlay />
 
       <AppSidebar username={user?.username} />
 

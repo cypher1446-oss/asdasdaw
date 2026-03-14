@@ -25,6 +25,31 @@ import type { DashboardStats, Respondent as SurveyResponse } from "@shared/schem
 import { StatusBadge } from "@/components/status-badge";
 import { GlassButton } from "@/components/ui/glass-button";
 import { useLocation } from "wouter";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Monitor, Smartphone, Tablet as TabletIcon, Clock } from "lucide-react";
+
+const getDeviceIcon = (ua: string | null) => {
+  if (!ua) return <Monitor className="w-4 h-4 text-slate-300" />;
+  if (/mobile/i.test(ua)) return <Smartphone className="w-4 h-4 text-blue-400" />;
+  if (/tablet/i.test(ua)) return <TabletIcon className="w-4 h-4 text-emerald-400" />;
+  return <Monitor className="w-4 h-4 text-slate-400" />;
+};
+
+const calculateLOI = (start: string | Date | null, end: string | Date | null) => {
+  if (!start || !end) return "-";
+  const s = new Date(start).getTime();
+  const e = new Date(end).getTime();
+  const diff = Math.floor((e - s) / 1000);
+  if (diff < 60) return `${diff}s`;
+  return `${Math.floor(diff / 60)}m ${diff % 60}s`;
+};
 
 export default function DashboardPage() {
   const [, setLocation] = useLocation();
@@ -214,6 +239,87 @@ export default function DashboardPage() {
           </Card>
         </div>
       </div>
+
+      {/* Live Respondent Tracking Table */}
+      <Card className="bg-white/40 border-slate-200/60 backdrop-blur-2xl rounded-[2.5rem] shadow-2xl shadow-slate-200/20 overflow-hidden group">
+        <CardHeader className="p-8 border-b border-slate-100 flex flex-row items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Activity className="w-4 h-4 text-primary" />
+            </div>
+            <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">Live Respondent Tracking</CardTitle>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Live Feed</span>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent border-slate-100">
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 pl-8">Supplier UID</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Supplier Name</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Client UID Sent</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Project</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">IP Address</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Device</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">User Agent</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400">Time</TableHead>
+                  <TableHead className="text-[10px] font-black uppercase tracking-widest text-slate-400 pr-8">LOI</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {latestQuery.isLoading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i} className="border-slate-50">
+                      {Array.from({ length: 10 }).map((_, j) => (
+                        <TableCell key={j} className={j === 0 ? "pl-8" : j === 9 ? "pr-8" : ""}>
+                          <Skeleton className="h-4 w-20 bg-slate-100" />
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (latestQuery.data as any[])?.map((r) => (
+                  <TableRow key={r.id} className="hover:bg-slate-50/50 transition-colors border-slate-50 group/row">
+                    <TableCell className="pl-8 font-mono text-[11px] text-slate-500 font-bold">{r.supplierRid || "-"}</TableCell>
+                    <TableCell className="text-xs font-bold text-slate-700">{r.supplierName || "Direct Traffic"}</TableCell>
+                    <TableCell className="text-xs font-mono text-slate-400">{r.clientRid || "-"}</TableCell>
+                    <TableCell>
+                      <span className="text-xs font-black text-primary px-2 py-1 bg-primary/5 rounded-lg border border-primary/10 capitalize">
+                        {r.projectCode}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-[11px] font-mono text-slate-500">{r.ipAddress || "-"}</TableCell>
+                    <TableCell>
+                      {getDeviceIcon(r.userAgent)}
+                    </TableCell>
+                    <TableCell className="max-w-[150px]">
+                      <span className="text-[10px] text-slate-400 truncate block hover:text-slate-600 transition-colors cursor-help" title={r.userAgent || ""}>
+                        {r.userAgent || "-"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={r.status || "started"} className="scale-90 origin-left" />
+                    </TableCell>
+                    <TableCell className="text-[11px] font-bold text-slate-400 whitespace-nowrap">
+                      {new Date(r.startedAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </TableCell>
+                    <TableCell className="pr-8 text-xs font-black text-slate-600">
+                      <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <Clock className="w-3 h-3 text-slate-300" />
+                        {calculateLOI(r.startedAt, r.completedAt)}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

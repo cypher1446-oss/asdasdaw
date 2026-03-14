@@ -31,7 +31,7 @@ import PausedPage from "@/pages/paused";
 import { SupplierProtectedRoute } from "@/components/supplier-protected-route";
 import SupplierLoginPage from "@/pages/supplier/login";
 import SupplierDashboardPage from "@/pages/supplier/dashboard";
-import SupplierResponsesPage from "@/pages/supplier/responses";
+import SupplierProjectsPage from "@/pages/supplier/projects";
 import { Loader2 } from "lucide-react";
 
 // New Public Landing Pages
@@ -146,9 +146,9 @@ function Router() {
           <SupplierDashboardPage />
         </SupplierProtectedRoute>
       </Route>
-      <Route path="/supplier/responses">
+      <Route path="/supplier/projects">
         <SupplierProtectedRoute>
-          <SupplierResponsesPage />
+          <SupplierProjectsPage />
         </SupplierProtectedRoute>
       </Route>
 

@@ -1,6 +1,9 @@
 import { SupplierSidebar } from "./supplier-sidebar";
 import { useSupplierAuth } from "@/hooks/use-supplier-auth";
-import { WavyBackground } from "@/components/ui/wavy-background";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { Menu, LogOut, Square } from "lucide-react";
 
 interface SupplierLayoutProps {
   children: React.ReactNode;
@@ -8,34 +11,59 @@ interface SupplierLayoutProps {
 
 export function SupplierLayout({ children }: SupplierLayoutProps) {
   const { user } = useSupplierAuth();
+  const [, setLocation] = useLocation();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/supplier/auth/logout");
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      setLocation("/supplier/login");
+    },
+  });
 
   return (
-    <div className="flex min-h-screen w-full bg-slate-50 selection:bg-blue-500 selection:text-white font-sans overflow-hidden relative text-slate-900 transition-colors duration-500">
-      {/* Animated Wavy Background — fixed, behind everything */}
-      <WavyBackground />
-
-      <SupplierSidebar username={user?.username} supplierCode={user?.supplierCode} />
-
-      <div className="flex flex-col flex-1 min-w-0 relative z-10">
-        <header className="flex items-center justify-between px-8 py-4 border-b border-slate-200/60 sticky top-0 z-40 bg-white/60 backdrop-blur-xl">
-          <div className="flex flex-col">
-            <h2 className="text-[9px] font-black text-blue-500/80 uppercase tracking-[0.4em] leading-none mb-1 shadow-sm">Partner Hub</h2>
-            <p className="text-[13px] font-black text-slate-800 capitalize tracking-tight">Supplier Operations</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="px-3 py-1 bg-white/50 rounded-full border border-slate-200/60">
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none">Status: <span className="text-emerald-500">Live</span></span>
+    <div className="flex flex-col min-h-screen w-full bg-[#f4f7f6] font-sans text-slate-800">
+      {/* Header */}
+      <header className="h-[60px] bg-white border-b border-slate-200 flex items-center justify-between px-6 sticky top-0 z-50">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="relative w-8 h-8 flex items-center justify-center">
+              <Square className="w-6 h-6 text-[#007bff] fill-[#007bff] rotate-45" />
+            </div>
+            <div className="leading-none">
+              <span className="block text-[16px] font-bold text-slate-800">Global Matrix</span>
+              <span className="block text-[11px] font-medium text-slate-500 uppercase tracking-wider">SURVEY</span>
             </div>
           </div>
-        </header>
+          <button className="text-slate-500 hover:text-slate-800 transition-colors">
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
 
-        <main className="flex-1 overflow-auto p-4 md:p-8 custom-scrollbar">
-          <div className="max-w-7xl mx-auto w-full">
-            {children}
+        <button 
+          onClick={() => logoutMutation.mutate()}
+          className="w-10 h-10 flex items-center justify-center text-[#007bff] hover:bg-slate-100 rounded-md transition-colors"
+          title="Sign Out"
+        >
+          <LogOut className="w-6 h-6" />
+        </button>
+      </header>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar */}
+        <SupplierSidebar />
+
+        {/* Main Content */}
+        <main className="flex-1 overflow-auto custom-scrollbar">
+          <div className="p-8">
+            <div className="max-w-[1600px] mx-auto">
+              {children}
+            </div>
           </div>
         </main>
       </div>
     </div>
   );
 }
-
