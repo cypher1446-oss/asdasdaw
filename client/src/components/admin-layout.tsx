@@ -1,6 +1,6 @@
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { useAuth } from "@/hooks/use-auth";
-import { BackgroundPaths } from "@/components/ui/background-paths";
+import { WavyBackground } from "@/components/ui/wavy-background";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -11,8 +11,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <div className="flex min-h-screen w-full bg-slate-50 selection:bg-primary selection:text-white font-sans overflow-hidden relative text-slate-900 transition-colors duration-500">
-      {/* Dynamic Background Paths layer */}
-      <BackgroundPaths />
+      {/* Animated Wavy Background — fixed, behind everything */}
+      <WavyBackground />
 
       <AppSidebar username={user?.username} />
 
